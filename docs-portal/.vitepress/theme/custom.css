@@ -27,7 +27,7 @@
   /* Typography & Layout Metrics */
   --vp-font-family-mono: 'Cascadia Code', 'JetBrains Mono', Consolas, monospace;
   --vp-sidebar-width: 290px;
-  --vp-layout-max-width: 1560px;
+  --vp-layout-max-width: 100% !important;
   --vp-sidebar-bg-color: #f8fafc;
 }
 
@@ -57,31 +57,63 @@
 }
 
 /* ==========================================================================
-   1. EXPANDED BALANCED INDUSTRIAL GRID LAYOUT (Eliminates Blank Voids)
+   1. FULL-WIDTH 3-COLUMN EDGE-TO-EDGE INDUSTRIAL GRID
    ========================================================================== */
 
-/* Main layout container comfortably expanded up to 1480px */
+/* Outer Layout Max Width: 100% of Viewport */
+.VPNavBar.has-sidebar .container,
+.VPNavBar.has-sidebar .wrapper {
+  max-width: 100% !important;
+}
+
+/* VPDoc container spans full width between the left sidebar and right screen edge */
 .VPDoc.has-sidebar .container {
-  max-width: 1480px !important;
-  margin: 0 auto;
-}
-
-/* Fluid Content Container expanding smoothly to 1080px */
-.VPDoc.has-sidebar .content-container {
-  max-width: 1080px !important;
-  padding: 0 36px 64px 36px !important;
+  max-width: 100% !important;
+  width: 100% !important;
   margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  justify-content: space-between !important;
 }
 
-/* Reading content canvas */
+/* Content wrapper spans full available space between Left Rail and Right Rail */
 .VPDoc.has-sidebar .content {
-  max-width: 1120px !important;
+  flex-grow: 1 !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  min-width: 0 !important;
 }
 
-/* Pinned Adjacent Aside TOC */
-.VPDoc.has-sidebar .aside {
-  max-width: 250px !important;
-  padding-left: 28px !important;
+/* Content Container with comfortable industrial inner breathing room */
+.VPDoc.has-sidebar .content-container {
+  max-width: 100% !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 24px 44px 64px 44px !important;
+}
+
+/* Right Aside TOC: Docked directly to the right margin of the viewport */
+@media (min-width: 1280px) {
+  .VPDoc.has-sidebar .aside {
+    display: block !important;
+    width: 250px !important;
+    max-width: 250px !important;
+    flex-shrink: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 28px !important;
+    margin: 0 !important;
+  }
+
+  .VPDoc.has-sidebar .aside-container {
+    position: fixed !important;
+    top: calc(var(--vp-nav-height) + 24px) !important;
+    right: 28px !important;
+    left: auto !important;
+    width: 230px !important;
+    height: calc(100vh - var(--vp-nav-height) - 40px) !important;
+    overflow-y: auto !important;
+  }
 }
 
 /* Footer Pager (Previous / Next section) pinned neatly to bottom of content */
