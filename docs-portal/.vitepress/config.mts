@@ -8,7 +8,7 @@ export default defineConfig({
   lastUpdated: true,
 
   head: [
-    ['link', { rel: 'icon', type: 'image/svg+xml', href: `${process.env.VITEPRESS_BASE || '/'}logo.svg` }]
+    ['link', { rel: 'icon', type: 'image/png', href: `${process.env.VITEPRESS_BASE || '/'}logo.png` }]
   ],
 
   rewrites: {
@@ -47,7 +47,7 @@ export default defineConfig({
   },
 
   themeConfig: {
-    logo: '/logo.svg',
+    logo: '/logo.png',
     siteTitle: 'SynaptiX IDE Wiki',
     search: {
       provider: 'local',
