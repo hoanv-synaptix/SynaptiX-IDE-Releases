@@ -26,9 +26,9 @@
 
   /* Typography & Layout Metrics */
   --vp-font-family-mono: 'Cascadia Code', 'JetBrains Mono', Consolas, monospace;
-  --vp-sidebar-width: 300px;
-  --vp-layout-max-width: 100%;
-  --vp-sidebar-bg-color: #f1f5f9;
+  --vp-sidebar-width: 290px;
+  --vp-layout-max-width: 1560px;
+  --vp-sidebar-bg-color: #f8fafc;
 }
 
 .dark {
@@ -52,48 +52,36 @@
 
   /* Surfaces & Code */
   --vp-nav-bg-color: rgba(0, 0, 0, 0.92);
-  --vp-sidebar-bg-color: #060606;
+  --vp-sidebar-bg-color: #080808;
   --vp-code-block-bg: #0d0d0d;
 }
 
 /* ==========================================================================
-   1. FLUID 3-COLUMN INDUSTRIAL GRID LAYOUT (Eliminates Right Blank Void)
+   1. EXPANDED BALANCED INDUSTRIAL GRID LAYOUT (Eliminates Blank Voids)
    ========================================================================== */
 
-/* Doc container spans full available width with left alignment */
+/* Main layout container comfortably expanded up to 1480px */
 .VPDoc.has-sidebar .container {
-  max-width: 100% !important;
-  width: 100% !important;
-  margin-left: 0 !important;
-  padding-left: 0 !important;
-  display: flex !important;
-  justify-content: flex-start !important;
+  max-width: 1480px !important;
+  margin: 0 auto;
 }
 
-/* Fluid Content Container expanding smoothly up to 1280px - 1340px */
+/* Fluid Content Container expanding smoothly to 1080px */
 .VPDoc.has-sidebar .content-container {
-  max-width: 1280px !important;
-  width: calc(100% - 280px) !important;
-  margin-left: 0 !important;
-  margin-right: 0 !important;
-  padding: 0 40px 64px 44px !important;
-  flex-grow: 1 !important;
+  max-width: 1080px !important;
+  padding: 0 36px 64px 36px !important;
+  margin: 0 !important;
 }
 
 /* Reading content canvas */
 .VPDoc.has-sidebar .content {
-  max-width: 100% !important;
-  width: 100% !important;
-  padding-right: 0 !important;
+  max-width: 1120px !important;
 }
 
-/* Pinned Adjacent Aside TOC (No disconnected 400px void) */
+/* Pinned Adjacent Aside TOC */
 .VPDoc.has-sidebar .aside {
-  width: 250px !important;
   max-width: 250px !important;
-  padding-left: 36px !important;
-  padding-right: 24px !important;
-  flex-shrink: 0 !important;
+  padding-left: 28px !important;
 }
 
 /* Footer Pager (Previous / Next section) pinned neatly to bottom of content */
@@ -102,14 +90,15 @@
   margin-top: 2.5rem !important;
 }
 
-/* All prose paragraphs, list items, and headings span the full 1060px */
+/* All prose paragraphs, list items, and headings span the full canvas width */
 .vp-doc p,
 .vp-doc li {
   max-width: 100% !important;
-  line-height: 1.7;
+  line-height: 1.68;
+  font-size: 0.94rem;
 }
 
-/* Headings align perfectly with left rail */
+/* Headings align cleanly */
 .vp-doc h1 {
   font-size: 1.85rem;
   font-weight: 700;
@@ -119,7 +108,7 @@
 }
 
 .vp-doc h2 {
-  font-size: 1.35rem;
+  font-size: 1.32rem;
   font-weight: 700;
   letter-spacing: -0.01em;
   margin-top: 2rem;
@@ -129,9 +118,9 @@
 }
 
 .vp-doc h3 {
-  font-size: 1.12rem;
+  font-size: 1.10rem;
   font-weight: 600;
-  margin-top: 1.5rem;
+  margin-top: 1.4rem;
   margin-bottom: 0.5rem;
 }
 
@@ -145,116 +134,165 @@
 }
 
 /* ==========================================================================
-   2. ESP-IDF 1:1 COMPACT INDUSTRIAL SIDEBAR TREE (24px Ultra-Dense)
+   2. HIGH-DENSITY INDUSTRIAL SIDEBAR TREE (Robust & 100% Overlap-Free)
    ========================================================================== */
 
-/* Top-level Chapter Eyebrow with Left-Aligned Caret */
+/* Top-level Chapter Eyebrow */
 .VPSidebarItem.level-0 {
-  padding: 0 !important;
-  margin: 0 !important;
+  padding-bottom: 10px !important;
+  margin-bottom: 2px !important;
 }
 
 .VPSidebarItem.level-0 > .item {
+  padding: 6px 10px !important;
+  min-height: 28px !important;
+  height: auto !important; /* CRITICAL: Must be auto to allow wrapping without collision */
   display: flex !important;
-  flex-direction: row-reverse !important;
-  justify-content: flex-end !important;
   align-items: center !important;
-  gap: 6px !important;
-  padding: 5px 8px 3px 8px !important;
-  min-height: 26px !important;
-  height: 26px !important;
+  justify-content: space-between !important;
+  border-radius: 4px !important;
+  transition: background-color 0.15s ease;
 }
 
-.VPSidebarItem.level-0 > .item > .caret {
+.VPSidebarItem.level-0 > .item:hover {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+
+.dark .VPSidebarItem.level-0 > .item:hover {
+  background-color: rgba(255, 255, 255, 0.04) !important;
+}
+
+.VPSidebarItem.level-0 > .item .text {
+  font-size: 0.74rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+  color: var(--vp-c-text-3) !important;
+  line-height: 1.35 !important;
   margin: 0 !important;
-  width: 16px !important;
-  height: 16px !important;
+  white-space: normal !important;
+  word-break: break-word !important;
+}
+
+.VPSidebarItem.level-0 > .item .caret {
+  margin-left: 6px !important;
+  flex-shrink: 0 !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
 }
 
-.VPSidebarItem.level-0 > .item > .text {
-  font-size: 0.72rem !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.05em !important;
-  text-transform: uppercase !important;
-  color: var(--vp-c-text-3) !important;
-}
-
-/* Indented Tree Structure (Strictly 24px row height, 0 margin) */
+/* Indented Level-1 Tree Structure */
 .VPSidebarItem.level-1 {
-  position: relative;
-  margin: 0 !important;
+  position: relative !important;
+  margin: 1px 0 !important;
   padding: 0 !important;
 }
 
 .VPSidebarItem.level-1 > .item {
-  padding: 0 10px 0 22px !important;
-  margin: 0 !important;
-  height: 24px !important;
-  min-height: 24px !important;
-  border-radius: 0 !important;
+  padding: 4px 10px !important;
+  min-height: 28px !important;
+  height: auto !important; /* CRITICAL: Never lock height */
   display: flex !important;
   align-items: center !important;
+  border-radius: 4px !important;
   border-left: 3px solid transparent !important;
-  transition: background-color 0.12s ease;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
 }
 
-.VPSidebarItem.level-1 > .item > .text {
-  font-size: 0.81rem !important;
-  line-height: 1.25 !important;
-  color: var(--vp-c-text-2);
+.VPSidebarItem.level-1 > .item .link {
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+  text-decoration: none !important;
+}
+
+.VPSidebarItem.level-1 > .item .text {
+  font-size: 0.83rem !important;
+  line-height: 1.4 !important;
+  color: var(--vp-c-text-2) !important;
+  white-space: normal !important;
+  word-break: break-word !important;
+  margin: 0 !important;
+  transition: color 0.12s ease;
 }
 
 .VPSidebarItem.level-1 > .item:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: rgba(0, 0, 0, 0.04) !important;
 }
 
 .dark .VPSidebarItem.level-1 > .item:hover {
-  background-color: rgba(255, 255, 255, 0.06);
+  background-color: rgba(255, 255, 255, 0.05) !important;
 }
 
-.VPSidebarItem.level-1 > .item:hover > .text {
-  color: var(--vp-c-text-1);
+.VPSidebarItem.level-1 > .item:hover .text {
+  color: var(--vp-c-text-1) !important;
 }
 
-/* Full-Bleed High-Contrast Active State (ESP-IDF 1:1 Standard) */
-.VPSidebarItem.level-1 > .item.is-active {
-  background-color: #e2e8f0 !important;
+/* Full-Bleed High-Contrast Active State */
+.VPSidebarItem.level-1.is-active > .item {
+  background-color: var(--vp-c-brand-soft) !important;
   border-left: 3px solid var(--vp-c-brand-1) !important;
-  padding-left: 19px !important;
+  border-radius: 0 4px 4px 0 !important;
 }
 
-.VPSidebarItem.level-1 > .item.is-active > .text {
+.VPSidebarItem.level-1.is-active > .item .text {
   color: var(--vp-c-brand-1) !important;
-  font-weight: 700 !important;
+  font-weight: 600 !important;
 }
 
-.dark .VPSidebarItem.level-1 > .item.is-active {
-  background-color: rgba(14, 165, 233, 0.16) !important;
+.dark .VPSidebarItem.level-1.is-active > .item {
+  background-color: rgba(14, 165, 233, 0.14) !important;
   border-left: 3px solid #38bdf8 !important;
 }
 
-.dark .VPSidebarItem.level-1 > .item.is-active > .text {
+.dark .VPSidebarItem.level-1.is-active > .item .text {
   color: #38bdf8 !important;
-  font-weight: 700 !important;
+  font-weight: 600 !important;
 }
 
 /* Sub-items if level-2 */
 .VPSidebarItem.level-2 {
-  margin: 0 !important;
+  margin: 1px 0 !important;
   padding: 0 !important;
 }
 
 .VPSidebarItem.level-2 > .item {
-  padding: 0 10px 0 34px !important;
-  height: 24px !important;
-  min-height: 24px !important;
+  padding: 3px 10px 3px 22px !important;
+  min-height: 26px !important;
+  height: auto !important; /* CRITICAL: Never lock height */
+  border-radius: 4px !important;
+  border-left: 2px solid transparent !important;
+  display: flex !important;
+  align-items: center !important;
 }
 
-.VPSidebarItem.level-2 > .item > .text {
-  font-size: 0.79rem !important;
+.VPSidebarItem.level-2 > .item .text {
+  font-size: 0.80rem !important;
+  line-height: 1.35 !important;
+  white-space: normal !important;
+  word-break: break-word !important;
+  margin: 0 !important;
+}
+
+.VPSidebarItem.level-2.is-active > .item {
+  background-color: var(--vp-c-brand-soft) !important;
+  border-left: 2px solid var(--vp-c-brand-1) !important;
+}
+
+.VPSidebarItem.level-2.is-active > .item .text {
+  color: var(--vp-c-brand-1) !important;
+  font-weight: 600 !important;
+}
+
+.dark .VPSidebarItem.level-2.is-active > .item {
+  background-color: rgba(14, 165, 233, 0.14) !important;
+  border-left: 2px solid #38bdf8 !important;
+}
+
+.dark .VPSidebarItem.level-2.is-active > .item .text {
+  color: #38bdf8 !important;
+  font-weight: 600 !important;
 }
 
 /* ==========================================================================
@@ -518,15 +556,15 @@
    6. EXPANDED NAVBAR SEARCH INPUT & ANCHORED DROPDOWN MODAL
    ========================================================================== */
 
-/* Full-width Search Input Bar on Navbar (260px - 300px) */
+/* Full-width Search Input Bar on Navbar (250px) */
 .VPNavBarSearch .DocSearch-Button {
-  width: 280px !important;
-  min-width: 240px !important;
-  height: 36px !important;
+  width: 250px !important;
+  min-width: 210px !important;
+  height: 34px !important;
   border-radius: 6px !important;
   background-color: var(--vp-c-bg-alt) !important;
   border: 1px solid var(--vp-c-divider) !important;
-  padding: 0 12px !important;
+  padding: 0 10px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
@@ -544,32 +582,37 @@
   padding-left: 6px !important;
 }
 
-/* Anchored Dropdown Search Modal (Drops directly under the navbar search bar) */
-.VPLocalSearchBox .modal {
-  position: fixed !important;
-  top: 52px !important;
-  left: 200px !important;
-  margin: 0 !important;
-  width: 620px !important;
-  max-width: calc(100vw - 240px) !important;
-  border-radius: 8px !important;
-  border: 1px solid var(--vp-c-divider) !important;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35) !important;
-  background-color: var(--vp-c-bg-elv) !important;
+/* Anchored Dropdown Search Modal (Drops directly under the navbar search bar on desktop) */
+@media (min-width: 960px) {
+  .VPLocalSearchBox {
+    justify-content: flex-start !important;
+    align-items: flex-start !important;
+    padding-left: 290px !important;
+  }
+
+  .VPLocalSearchBox .shell {
+    margin: 54px 0 0 0 !important;
+    width: 620px !important;
+    max-width: calc(100vw - 320px) !important;
+    border-radius: 8px !important;
+    border: 1px solid var(--vp-c-divider) !important;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3) !important;
+  }
 }
 
 .VPLocalSearchBox .backdrop {
-  background-color: rgba(0, 0, 0, 0.25) !important;
+  background-color: rgba(0, 0, 0, 0.35) !important;
   backdrop-filter: blur(2px) !important;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 959px) {
   .VPNavBarSearch .DocSearch-Button {
     width: auto !important;
     min-width: unset !important;
   }
-  .VPLocalSearchBox .modal {
-    left: 16px !important;
+
+  .VPLocalSearchBox .shell {
+    margin: 48px auto !important;
     width: calc(100vw - 32px) !important;
     max-width: calc(100vw - 32px) !important;
   }
