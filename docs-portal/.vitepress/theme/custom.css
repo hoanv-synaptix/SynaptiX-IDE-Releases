@@ -28,6 +28,7 @@
   --vp-font-family-mono: 'Cascadia Code', 'JetBrains Mono', Consolas, monospace;
   --vp-sidebar-width: 300px;
   --vp-layout-max-width: 100%;
+  --vp-sidebar-bg-color: #f1f5f9;
 }
 
 .dark {
@@ -56,46 +57,48 @@
 }
 
 /* ==========================================================================
-   1. UNIFIED 3-COLUMN INDUSTRIAL GRID LAYOUT (1644px Balanced Desktop View)
+   1. FLUID 3-COLUMN INDUSTRIAL GRID LAYOUT (Eliminates Right Blank Void)
    ========================================================================== */
 
-/* Doc container spans up to 1680px and aligns to left rail with no void */
+/* Doc container spans full available width with left alignment */
 .VPDoc.has-sidebar .container {
-  max-width: 1680px !important;
+  max-width: 100% !important;
+  width: 100% !important;
   margin-left: 0 !important;
   padding-left: 0 !important;
   display: flex !important;
   justify-content: flex-start !important;
 }
 
-/* Content container expanded to 1060px, anchored 44px from sidebar */
+/* Fluid Content Container expanding smoothly up to 1280px - 1340px */
 .VPDoc.has-sidebar .content-container {
-  max-width: 1060px !important;
-  width: 1060px !important;
+  max-width: 1280px !important;
+  width: calc(100% - 280px) !important;
   margin-left: 0 !important;
   margin-right: 0 !important;
-  padding: 0 0 64px 44px !important;
-  flex-shrink: 0 !important;
+  padding: 0 40px 64px 44px !important;
+  flex-grow: 1 !important;
 }
 
 /* Reading content canvas */
 .VPDoc.has-sidebar .content {
-  max-width: 1060px !important;
+  max-width: 100% !important;
   width: 100% !important;
   padding-right: 0 !important;
 }
 
-/* Right Aside TOC pulled tightly adjacent to content (+40px padding), eliminating the 400px void */
+/* Pinned Adjacent Aside TOC (No disconnected 400px void) */
 .VPDoc.has-sidebar .aside {
   width: 250px !important;
   max-width: 250px !important;
-  padding-left: 40px !important;
+  padding-left: 36px !important;
+  padding-right: 24px !important;
   flex-shrink: 0 !important;
 }
 
 /* Footer Pager (Previous / Next section) pinned neatly to bottom of content */
 .VPDoc.has-sidebar .VPDocFooter {
-  max-width: 1060px !important;
+  max-width: 100% !important;
   margin-top: 2.5rem !important;
 }
 
@@ -142,16 +145,33 @@
 }
 
 /* ==========================================================================
-   2. COMPACT SIDEBAR TREE HIERARCHY (IBM Carbon Industrial Density)
+   2. ESP-IDF 1:1 COMPACT INDUSTRIAL SIDEBAR TREE (24px Ultra-Dense)
    ========================================================================== */
 
-/* Top-level Chapter Eyebrow */
+/* Top-level Chapter Eyebrow with Left-Aligned Caret */
 .VPSidebarItem.level-0 {
-  padding-bottom: 2px !important;
+  padding: 0 !important;
+  margin: 0 !important;
 }
 
 .VPSidebarItem.level-0 > .item {
-  padding: 6px 10px 2px 10px !important;
+  display: flex !important;
+  flex-direction: row-reverse !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 5px 8px 3px 8px !important;
+  min-height: 26px !important;
+  height: 26px !important;
+}
+
+.VPSidebarItem.level-0 > .item > .caret {
+  margin: 0 !important;
+  width: 16px !important;
+  height: 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 .VPSidebarItem.level-0 > .item > .text {
@@ -162,71 +182,79 @@
   color: var(--vp-c-text-3) !important;
 }
 
-/* Indented Tree Structure with Vertical Guidelines */
+/* Indented Tree Structure (Strictly 24px row height, 0 margin) */
 .VPSidebarItem.level-1 {
   position: relative;
-  margin-left: 10px;
-  padding-left: 6px;
-  border-left: 1px solid var(--vp-c-divider);
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 .VPSidebarItem.level-1 > .item {
-  padding: 2.5px 8px !important;
-  margin: 1px 0 !important;
-  min-height: 28px !important;
-  border-radius: 4px;
-  transition: all 0.16s ease;
+  padding: 0 10px 0 22px !important;
+  margin: 0 !important;
+  height: 24px !important;
+  min-height: 24px !important;
+  border-radius: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  border-left: 3px solid transparent !important;
+  transition: background-color 0.12s ease;
 }
 
 .VPSidebarItem.level-1 > .item > .text {
-  font-size: 0.83rem !important;
-  line-height: 1.35 !important;
+  font-size: 0.81rem !important;
+  line-height: 1.25 !important;
   color: var(--vp-c-text-2);
 }
 
 .VPSidebarItem.level-1 > .item:hover {
-  background-color: var(--vp-c-bg-soft);
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.dark .VPSidebarItem.level-1 > .item:hover {
+  background-color: rgba(255, 255, 255, 0.06);
 }
 
 .VPSidebarItem.level-1 > .item:hover > .text {
   color: var(--vp-c-text-1);
 }
 
-/* High-Contrast Active Pill (Stripe / Tailwind / Microsoft Learn standard) */
+/* Full-Bleed High-Contrast Active State (ESP-IDF 1:1 Standard) */
 .VPSidebarItem.level-1 > .item.is-active {
-  background-color: var(--vp-c-brand-soft) !important;
+  background-color: #e2e8f0 !important;
   border-left: 3px solid var(--vp-c-brand-1) !important;
+  padding-left: 19px !important;
 }
 
 .VPSidebarItem.level-1 > .item.is-active > .text {
   color: var(--vp-c-brand-1) !important;
-  font-weight: 600 !important;
+  font-weight: 700 !important;
 }
 
 .dark .VPSidebarItem.level-1 > .item.is-active {
-  background-color: rgba(14, 165, 233, 0.14) !important;
+  background-color: rgba(14, 165, 233, 0.16) !important;
   border-left: 3px solid #38bdf8 !important;
 }
 
 .dark .VPSidebarItem.level-1 > .item.is-active > .text {
   color: #38bdf8 !important;
-  font-weight: 600 !important;
+  font-weight: 700 !important;
 }
 
 /* Sub-items if level-2 */
 .VPSidebarItem.level-2 {
-  margin-left: 10px;
-  padding-left: 6px;
-  border-left: 1px solid var(--vp-c-divider);
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 .VPSidebarItem.level-2 > .item {
-  padding: 2px 8px !important;
-  min-height: 26px !important;
+  padding: 0 10px 0 34px !important;
+  height: 24px !important;
+  min-height: 24px !important;
 }
 
 .VPSidebarItem.level-2 > .item > .text {
-  font-size: 0.80rem !important;
+  font-size: 0.79rem !important;
 }
 
 /* ==========================================================================
@@ -519,15 +547,20 @@
 /* Anchored Dropdown Search Modal (Drops directly under the navbar search bar) */
 .VPLocalSearchBox .modal {
   position: fixed !important;
-  top: 56px !important;
-  left: 240px !important;
+  top: 52px !important;
+  left: 200px !important;
   margin: 0 !important;
-  width: 640px !important;
-  max-width: calc(100vw - 280px) !important;
+  width: 620px !important;
+  max-width: calc(100vw - 240px) !important;
   border-radius: 8px !important;
   border: 1px solid var(--vp-c-divider) !important;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35) !important;
   background-color: var(--vp-c-bg-elv) !important;
+}
+
+.VPLocalSearchBox .backdrop {
+  background-color: rgba(0, 0, 0, 0.25) !important;
+  backdrop-filter: blur(2px) !important;
 }
 
 @media (max-width: 960px) {
