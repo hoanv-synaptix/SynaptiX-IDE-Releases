@@ -56,55 +56,54 @@
 }
 
 /* ==========================================================================
-   1. LEFT-ANCHORED ENGINEERING GRID LAYOUT (Eliminates Margin: 0 Auto Gap)
+   1. UNIFIED 3-COLUMN INDUSTRIAL GRID LAYOUT (1644px Balanced Desktop View)
    ========================================================================== */
 
-/* Doc container spans full width and aligns to left rail */
+/* Doc container spans up to 1680px and aligns to left rail with no void */
 .VPDoc.has-sidebar .container {
-  max-width: 100% !important;
+  max-width: 1680px !important;
   margin-left: 0 !important;
   padding-left: 0 !important;
   display: flex !important;
   justify-content: flex-start !important;
 }
 
-/* Content container starts immediately adjacent to sidebar divider (44px gutter) in normal block flow */
+/* Content container expanded to 1060px, anchored 44px from sidebar */
 .VPDoc.has-sidebar .content-container {
-  max-width: 100% !important;
+  max-width: 1060px !important;
+  width: 1060px !important;
   margin-left: 0 !important;
-  margin-right: auto !important;
-  padding: 0 36px 64px 44px !important;
+  margin-right: 0 !important;
+  padding: 0 0 64px 44px !important;
+  flex-shrink: 0 !important;
 }
 
-/* Reading content canvas expands smoothly to 1120px - 1280px */
+/* Reading content canvas */
 .VPDoc.has-sidebar .content {
-  max-width: 1120px !important;
-  padding-right: 40px !important;
+  max-width: 1060px !important;
+  width: 100% !important;
+  padding-right: 0 !important;
 }
 
-@media (min-width: 1536px) {
-  .VPDoc.has-sidebar .content {
-    max-width: 1260px !important;
-  }
+/* Right Aside TOC pulled tightly adjacent to content (+40px padding), eliminating the 400px void */
+.VPDoc.has-sidebar .aside {
+  width: 250px !important;
+  max-width: 250px !important;
+  padding-left: 40px !important;
+  flex-shrink: 0 !important;
 }
 
 /* Footer Pager (Previous / Next section) pinned neatly to bottom of content */
 .VPDoc.has-sidebar .VPDocFooter {
-  max-width: 1120px !important;
+  max-width: 1060px !important;
   margin-top: 2.5rem !important;
 }
 
-@media (min-width: 1536px) {
-  .VPDoc.has-sidebar .VPDocFooter {
-    max-width: 1260px !important;
-  }
-}
-
-/* Ergonomic Reading Measure (65-75 CPL) for prose paragraphs to prevent eye fatigue */
+/* All prose paragraphs, list items, and headings span the full 1060px */
 .vp-doc p,
 .vp-doc li {
-  max-width: 860px;
-  line-height: 1.68;
+  max-width: 100% !important;
+  line-height: 1.7;
 }
 
 /* Headings align perfectly with left rail */
@@ -143,22 +142,22 @@
 }
 
 /* ==========================================================================
-   2. SIDEBAR TREE HIERARCHY & ACTIVE PILL NAVIGATION
+   2. COMPACT SIDEBAR TREE HIERARCHY (IBM Carbon Industrial Density)
    ========================================================================== */
 
 /* Top-level Chapter Eyebrow */
 .VPSidebarItem.level-0 {
-  padding-bottom: 8px;
+  padding-bottom: 2px !important;
 }
 
 .VPSidebarItem.level-0 > .item {
-  padding: 8px 12px 4px 12px !important;
+  padding: 6px 10px 2px 10px !important;
 }
 
 .VPSidebarItem.level-0 > .item > .text {
-  font-size: 0.73rem !important;
+  font-size: 0.72rem !important;
   font-weight: 700 !important;
-  letter-spacing: 0.06em !important;
+  letter-spacing: 0.05em !important;
   text-transform: uppercase !important;
   color: var(--vp-c-text-3) !important;
 }
@@ -166,21 +165,22 @@
 /* Indented Tree Structure with Vertical Guidelines */
 .VPSidebarItem.level-1 {
   position: relative;
-  margin-left: 14px;
+  margin-left: 10px;
   padding-left: 6px;
   border-left: 1px solid var(--vp-c-divider);
 }
 
 .VPSidebarItem.level-1 > .item {
-  padding: 4px 10px !important;
-  margin: 2px 0;
+  padding: 2.5px 8px !important;
+  margin: 1px 0 !important;
+  min-height: 28px !important;
   border-radius: 4px;
   transition: all 0.16s ease;
 }
 
 .VPSidebarItem.level-1 > .item > .text {
-  font-size: 0.85rem !important;
-  line-height: 1.4;
+  font-size: 0.83rem !important;
+  line-height: 1.35 !important;
   color: var(--vp-c-text-2);
 }
 
@@ -215,13 +215,18 @@
 
 /* Sub-items if level-2 */
 .VPSidebarItem.level-2 {
-  margin-left: 12px;
+  margin-left: 10px;
   padding-left: 6px;
   border-left: 1px solid var(--vp-c-divider);
 }
 
+.VPSidebarItem.level-2 > .item {
+  padding: 2px 8px !important;
+  min-height: 26px !important;
+}
+
 .VPSidebarItem.level-2 > .item > .text {
-  font-size: 0.81rem !important;
+  font-size: 0.80rem !important;
 }
 
 /* ==========================================================================
@@ -479,4 +484,60 @@
 .dark .synx-mermaid-container {
   background-color: #080808;
   border-color: #262626;
+}
+
+/* ==========================================================================
+   6. EXPANDED NAVBAR SEARCH INPUT & ANCHORED DROPDOWN MODAL
+   ========================================================================== */
+
+/* Full-width Search Input Bar on Navbar (260px - 300px) */
+.VPNavBarSearch .DocSearch-Button {
+  width: 280px !important;
+  min-width: 240px !important;
+  height: 36px !important;
+  border-radius: 6px !important;
+  background-color: var(--vp-c-bg-alt) !important;
+  border: 1px solid var(--vp-c-divider) !important;
+  padding: 0 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  transition: border-color 0.18s ease, background-color 0.18s ease;
+}
+
+.VPNavBarSearch .DocSearch-Button:hover {
+  border-color: var(--vp-c-brand-1) !important;
+  background-color: var(--vp-c-bg-soft) !important;
+}
+
+.VPNavBarSearch .DocSearch-Button-Placeholder {
+  font-size: 0.82rem !important;
+  color: var(--vp-c-text-3) !important;
+  padding-left: 6px !important;
+}
+
+/* Anchored Dropdown Search Modal (Drops directly under the navbar search bar) */
+.VPLocalSearchBox .modal {
+  position: fixed !important;
+  top: 56px !important;
+  left: 240px !important;
+  margin: 0 !important;
+  width: 640px !important;
+  max-width: calc(100vw - 280px) !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--vp-c-divider) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45) !important;
+  background-color: var(--vp-c-bg-elv) !important;
+}
+
+@media (max-width: 960px) {
+  .VPNavBarSearch .DocSearch-Button {
+    width: auto !important;
+    min-width: unset !important;
+  }
+  .VPLocalSearchBox .modal {
+    left: 16px !important;
+    width: calc(100vw - 32px) !important;
+    max-width: calc(100vw - 32px) !important;
+  }
 }
