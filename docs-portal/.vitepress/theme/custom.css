@@ -1,0 +1,207 @@
+/**
+ * SynaptiX Industrial Design System for Technical Documentation Wiki
+ * Compliant with ANSI/ISA-101.01-2015, IEC/IEEE 82079-1, and ANSI Z535.6
+ */
+
+:root {
+  /* SynaptiX Primary Industrial Brand Palette */
+  --vp-c-brand-1: #006487;
+  --vp-c-brand-2: #0284c7;
+  --vp-c-brand-3: #0369a1;
+  --vp-c-brand-soft: rgba(0, 100, 135, 0.12);
+
+  /* ANSI Z535.6 / IEC 60073 Semantic Colors */
+  --vp-c-danger-1: #b91c1c;
+  --vp-c-danger-2: #dc2626;
+  --vp-c-danger-soft: rgba(185, 28, 28, 0.12);
+
+  --vp-c-warning-1: #c05621;
+  --vp-c-warning-2: #d97706;
+  --vp-c-warning-soft: rgba(192, 86, 33, 0.12);
+
+  --vp-c-tip-1: #107c41;
+  --vp-c-tip-2: #15803d;
+  --vp-c-tip-soft: rgba(16, 124, 65, 0.12);
+
+  /* Typography */
+  --vp-font-family-mono: 'Cascadia Code', 'JetBrains Mono', Consolas, monospace;
+  --vp-sidebar-width: 296px;
+}
+
+.dark {
+  --vp-c-brand-1: #38bdf8;
+  --vp-c-brand-2: #0284c7;
+  --vp-c-brand-3: #0369a1;
+  --vp-c-brand-soft: rgba(56, 189, 248, 0.14);
+
+  /* ISA-101 Neutral Glare-Free Dark Slate Surfaces */
+  --vp-c-bg: #0f172a;
+  --vp-c-bg-alt: #162033;
+  --vp-c-bg-elv: #1e293b;
+  --vp-c-bg-soft: #1e293b;
+  --vp-c-divider: #334155;
+  --vp-c-gutter: #1e293b;
+}
+
+/* Sidebar Wiki Hierarchy Styling */
+.VPSidebarItem.level-0 > .item > .text {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--vp-c-text-1);
+}
+
+.VPSidebarItem.level-1 > .item > .text {
+  font-size: 0.87rem;
+}
+
+.VPSidebarItem.level-2 > .item > .text {
+  font-size: 0.84rem;
+}
+
+/* IBM Carbon High-Density Engineering Specification Tables */
+.vp-doc table {
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  margin: 1.15rem 0;
+}
+
+.vp-doc th {
+  background-color: var(--vp-c-bg-soft);
+  font-weight: 600;
+  text-transform: none;
+  padding: 8px 12px;
+  border: 1px solid var(--vp-c-divider);
+  text-align: left;
+}
+
+.vp-doc td {
+  padding: 7px 12px;
+  border: 1px solid var(--vp-c-divider);
+  vertical-align: top;
+}
+
+.vp-doc tr:nth-child(2n) {
+  background-color: rgba(148, 163, 184, 0.04);
+}
+
+/* Document Metadata Banner (IEC/IEEE 82079-1 Document Control Header) */
+.doc-meta-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  padding: 10px 14px;
+  margin: 12px 0 22px 0;
+  border-radius: 6px;
+  background-color: var(--vp-c-bg-soft);
+  border: 1px solid var(--vp-c-divider);
+  border-left: 4px solid var(--vp-c-brand-1);
+  font-size: 0.83rem;
+  line-height: 1.5;
+}
+
+.doc-meta-bar span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.doc-meta-bar strong {
+  color: var(--vp-c-text-1);
+}
+
+/* Wiki Portal Chapter Directory Grid */
+.wiki-chapter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 14px;
+  margin: 1.25rem 0 1.75rem 0;
+}
+
+.wiki-card {
+  display: block;
+  padding: 16px 18px;
+  border-radius: 6px;
+  background-color: var(--vp-c-bg-soft);
+  border: 1px solid var(--vp-c-divider);
+  text-decoration: none !important;
+  transition: border-color 0.18s ease, transform 0.18s ease;
+}
+
+.wiki-card:hover {
+  border-color: var(--vp-c-brand-1);
+  transform: translateY(-1px);
+}
+
+.wiki-card-step {
+  display: inline-block;
+  font-family: var(--vp-font-family-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--vp-c-brand-1);
+  background: var(--vp-c-brand-soft);
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.wiki-card h3 {
+  margin: 4px 0 6px 0 !important;
+  font-size: 1.02rem !important;
+  color: var(--vp-c-text-1);
+}
+
+.wiki-card p {
+  margin: 0 !important;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--vp-c-text-2);
+}
+
+/* ANSI Z535.6 Custom Block Borders */
+.vp-doc .custom-block {
+  border-radius: 6px;
+  border-left-width: 4px;
+}
+
+.vp-doc .custom-block.danger {
+  border-left-color: #dc2626;
+}
+
+.vp-doc .custom-block.warning {
+  border-left-color: #d97706;
+}
+
+/* Crisp Technical Screenshots */
+.vp-doc img {
+  border-radius: 6px;
+  border: 1px solid var(--vp-c-divider);
+  margin: 1rem auto;
+}
+
+/* Native Mermaid Diagram Container */
+.synx-mermaid-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+  margin: 1.25rem 0;
+  border-radius: 6px;
+  background-color: var(--vp-c-bg-soft);
+  border: 1px solid var(--vp-c-divider);
+  overflow-x: auto;
+}
+
+.synx-mermaid-svg svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.synx-mermaid-loading {
+  font-size: 0.85rem;
+  color: var(--vp-c-text-2);
+  padding: 12px;
+}

@@ -1,4 +1,4 @@
-﻿# SynaptiX IDE — Industrial PLC Programming & Automation Environment
+# SynaptiX IDE — Industrial PLC Programming & Automation Environment
 
 [![Latest Release](https://img.shields.io/github/v/release/hoanv-synaptix/SynaptiX-IDE-Releases?color=107C41&label=Latest%20Release)](https://github.com/hoanv-synaptix/SynaptiX-IDE-Releases/releases/latest)
 [![Platform](https://img.shields.io/badge/.NET-8.0%20WPF%20(x64)-006487?logo=dotnet)](https://dotnet.microsoft.com/)
@@ -10,6 +10,14 @@
 > **Visual node-graph PLC programming IDE paired with an ultra-lightweight 32-byte binary rule engine running bare-metal on deterministic industrial microcontrollers with a 10ms (100Hz) scan cycle.**
 
 **SynaptiX IDE** re-engineers small-scale machine automation, edge computing, and Industrial IoT (IIoT) control. Rather than relying on heavy, resource-intensive virtual machines, SynaptiX IDE compiles visual control logic directly into **compact 32-byte fixed-size binary records**. The industrial controller runtime executes these records via direct pointer indexing inside a deterministic **10ms (100Hz) scan loop**, fitting up to 100 industrial automation rules into just **3.2 KB of RAM**.
+
+---
+
+## 📖 Online Technical Documentation & Wiki
+
+Comprehensive technical reference manual, function block datasheets, workspace guides, and system integration blueprints:
+- 🌐 **English Documentation:** [https://hoanv-synaptix.github.io/SynaptiX-IDE-Releases/](https://hoanv-synaptix.github.io/SynaptiX-IDE-Releases/)
+- 🇻🇳 **Tài liệu Kỹ thuật Tiếng Việt:** [https://hoanv-synaptix.github.io/SynaptiX-IDE-Releases/vi/](https://hoanv-synaptix.github.io/SynaptiX-IDE-Releases/vi/)
 
 ---
 
