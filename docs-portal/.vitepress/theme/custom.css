@@ -59,31 +59,43 @@
    1. LEFT-ANCHORED ENGINEERING GRID LAYOUT (Eliminates Margin: 0 Auto Gap)
    ========================================================================== */
 
-/* Doc container spans full width with zero left margin void */
+/* Doc container spans full width and aligns to left rail */
 .VPDoc.has-sidebar .container {
   max-width: 100% !important;
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-/* Content container starts immediately adjacent to sidebar divider (44px gutter) */
-.VPDoc.has-sidebar .content-container {
-  max-width: 100% !important;
-  margin: 0 !important;
-  padding: 0 36px 64px 44px !important;
+  margin-left: 0 !important;
+  padding-left: 0 !important;
   display: flex !important;
   justify-content: flex-start !important;
 }
 
+/* Content container starts immediately adjacent to sidebar divider (44px gutter) in normal block flow */
+.VPDoc.has-sidebar .content-container {
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: auto !important;
+  padding: 0 36px 64px 44px !important;
+}
+
 /* Reading content canvas expands smoothly to 1120px - 1280px */
 .VPDoc.has-sidebar .content {
-  flex-grow: 1 !important;
   max-width: 1120px !important;
   padding-right: 40px !important;
 }
 
 @media (min-width: 1536px) {
   .VPDoc.has-sidebar .content {
+    max-width: 1260px !important;
+  }
+}
+
+/* Footer Pager (Previous / Next section) pinned neatly to bottom of content */
+.VPDoc.has-sidebar .VPDocFooter {
+  max-width: 1120px !important;
+  margin-top: 2.5rem !important;
+}
+
+@media (min-width: 1536px) {
+  .VPDoc.has-sidebar .VPDocFooter {
     max-width: 1260px !important;
   }
 }

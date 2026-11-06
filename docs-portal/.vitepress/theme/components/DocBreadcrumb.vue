@@ -52,8 +52,8 @@ const chapters: Record<string, ChapterMeta> = {
   },
   'tools': {
     code: '05',
-    titleEn: 'Connectivity & DTU Gateway',
-    titleVi: 'Kết Nối & Công Cụ Tích Hợp',
+    titleEn: 'Engineering Tools & Protocols',
+    titleVi: 'Công Cụ Kỹ Thuật & Giao Thức',
     linkEn: '/tools/rs485-and-scada-slave',
     linkVi: '/vi/tools/rs485-and-scada-slave'
   },

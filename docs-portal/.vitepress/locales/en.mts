@@ -10,7 +10,7 @@ export const enConfig: LocaleSpecificConfig<DefaultTheme.Config> = {
       { text: 'Getting Started', link: '/getting-started/installation', activeMatch: '/(concepts|getting-started)/' },
       { text: 'Workspaces', link: '/workspaces/device-tab', activeMatch: '/workspaces/' },
       { text: 'Blocks Reference', link: '/blocks/overview', activeMatch: '/blocks/' },
-      { text: 'Connectivity & DTU', link: '/tools/rs485-and-scada-slave', activeMatch: '/tools/' },
+      { text: 'Tools & Integration', link: '/tools/rs485-and-scada-slave', activeMatch: '/tools/' },
       { text: 'Appendices', link: '/appendices/keyboard-shortcuts', activeMatch: '/appendices/' }
     ],
 
@@ -97,7 +97,7 @@ export const enConfig: LocaleSpecificConfig<DefaultTheme.Config> = {
         ]
       },
       {
-        text: '05. Connectivity, DTU & Tools',
+        text: '05. Engineering Tools & Protocols',
         collapsed: false,
         items: [
           { text: 'RS-485 Config & SCADA Slave Map', link: '/tools/rs485-and-scada-slave' },

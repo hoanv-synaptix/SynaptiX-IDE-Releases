@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import DefaultTheme from 'vitepress/theme'
-import SidebarHeader from './components/SidebarHeader.vue'
+import NavbarVersionBadge from './components/NavbarVersionBadge.vue'
 import DocBreadcrumb from './components/DocBreadcrumb.vue'
 
 const { Layout } = DefaultTheme
@@ -8,8 +8,8 @@ const { Layout } = DefaultTheme
 
 <template>
   <Layout>
-    <template #sidebar-nav-before>
-      <SidebarHeader />
+    <template #nav-bar-title-after>
+      <NavbarVersionBadge />
     </template>
     <template #doc-before>
       <DocBreadcrumb />

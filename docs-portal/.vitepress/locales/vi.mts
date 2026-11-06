@@ -10,7 +10,7 @@ export const viConfig: LocaleSpecificConfig<DefaultTheme.Config> = {
       { text: 'Bắt đầu', link: '/vi/getting-started/installation', activeMatch: '/vi/(concepts|getting-started)/' },
       { text: 'Không gian Làm việc', link: '/vi/workspaces/device-tab', activeMatch: '/vi/workspaces/' },
       { text: 'Từ điển Khối hàm', link: '/vi/blocks/overview', activeMatch: '/vi/blocks/' },
-      { text: 'Kết nối & DTU', link: '/vi/tools/rs485-and-scada-slave', activeMatch: '/vi/tools/' },
+      { text: 'Công cụ & Tích hợp', link: '/vi/tools/rs485-and-scada-slave', activeMatch: '/vi/tools/' },
       { text: 'Phụ lục Tra cứu', link: '/vi/appendices/keyboard-shortcuts', activeMatch: '/vi/appendices/' }
     ],
 
@@ -97,7 +97,7 @@ export const viConfig: LocaleSpecificConfig<DefaultTheme.Config> = {
         ]
       },
       {
-        text: '05. Kết nối, DTU Studio & Công cụ',
+        text: '05. Công Cụ Kỹ Thuật & Giao Thức',
         collapsed: false,
         items: [
           { text: 'Cấu hình RS-485 & Bản đồ SCADA Slave', link: '/vi/tools/rs485-and-scada-slave' },
