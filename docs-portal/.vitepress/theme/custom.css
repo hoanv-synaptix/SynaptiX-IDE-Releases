@@ -93,26 +93,28 @@
   padding: 24px 44px 64px 44px !important;
 }
 
-/* Right Aside TOC: Docked directly to the right margin of the viewport */
+/* Right Aside TOC: Docked directly to the right margin of the viewport with clean vertical divider */
 @media (min-width: 1280px) {
   .VPDoc.has-sidebar .aside {
     display: block !important;
-    width: 250px !important;
-    max-width: 250px !important;
+    width: 280px !important;
+    max-width: 280px !important;
     flex-shrink: 0 !important;
     padding-left: 0 !important;
-    padding-right: 28px !important;
+    padding-right: 20px !important;
     margin: 0 !important;
   }
 
   .VPDoc.has-sidebar .aside-container {
     position: fixed !important;
     top: calc(var(--vp-nav-height) + 24px) !important;
-    right: 28px !important;
+    right: 20px !important;
     left: auto !important;
-    width: 230px !important;
+    width: 260px !important;
     height: calc(100vh - var(--vp-nav-height) - 40px) !important;
     overflow-y: auto !important;
+    border-left: 1px solid var(--vp-c-divider) !important;
+    padding-left: 18px !important;
   }
 }
 
@@ -122,12 +124,38 @@
   margin-top: 2.5rem !important;
 }
 
-/* All prose paragraphs, list items, and headings span the full canvas width */
+/* Hybrid Ergonomic Reading: Prose paragraphs maintain 65-85 CPL optimal eye-tracking */
 .vp-doc p,
-.vp-doc li {
-  max-width: 100% !important;
-  line-height: 1.68;
+.vp-doc ul:not(.root),
+.vp-doc ol,
+.vp-doc blockquote {
+  max-width: 960px !important;
+  line-height: 1.72;
   font-size: 0.94rem;
+}
+
+/* Technical Data Infrastructure: Tables, Diagrams, Code, Cards stretch 100% across the full canvas */
+.vp-doc table,
+.vp-doc div[class*="language-"],
+.synx-mermaid-container,
+.vp-doc .custom-block,
+.doc-meta-bar {
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+/* Clean Technical Key Badges */
+.vp-doc kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  font-family: var(--vp-font-family-mono);
+  font-size: 0.82em;
+  font-weight: 600;
+  color: var(--vp-c-brand-1);
+  background-color: var(--vp-c-brand-soft);
+  border: 1px solid rgba(0, 100, 135, 0.25);
+  border-radius: 4px;
+  vertical-align: 1px;
 }
 
 /* Headings align cleanly */
@@ -154,15 +182,6 @@
   font-weight: 600;
   margin-top: 1.4rem;
   margin-bottom: 0.5rem;
-}
-
-/* Technical tables, code blocks, and diagrams expand to full canvas width */
-.vp-doc table,
-.vp-doc div[class*="language-"],
-.synx-mermaid-container,
-.vp-doc .custom-block,
-.doc-meta-bar {
-  max-width: 100% !important;
 }
 
 /* ==========================================================================
