@@ -26,6 +26,7 @@
   /* Typography */
   --vp-font-family-mono: 'Cascadia Code', 'JetBrains Mono', Consolas, monospace;
   --vp-sidebar-width: 296px;
+  --vp-layout-max-width: 1680px;
 }
 
 .dark {
@@ -51,6 +52,26 @@
   --vp-nav-bg-color: rgba(0, 0, 0, 0.88);
   --vp-sidebar-bg-color: #050505;
   --vp-code-block-bg: #0d0d0d;
+}
+
+/* Fluid Wide Engineering Layout (Eliminates narrow 688px reading constraints) */
+.VPDoc .container {
+  max-width: 100% !important;
+}
+
+.VPDoc.has-aside .content-container,
+.VPDoc:not(.has-aside) .content-container,
+.VPDoc .content-container {
+  max-width: 1280px !important;
+  margin: 0 auto;
+}
+
+@media (min-width: 1536px) {
+  .VPDoc.has-aside .content-container,
+  .VPDoc:not(.has-aside) .content-container,
+  .VPDoc .content-container {
+    max-width: 1360px !important;
+  }
 }
 
 /* Sidebar Wiki Hierarchy Styling */
@@ -89,9 +110,16 @@
 }
 
 .vp-doc td {
-  padding: 7px 12px;
+  padding: 8px 12px;
   border: 1px solid var(--vp-c-divider);
   vertical-align: top;
+  line-height: 1.55;
+}
+
+.vp-doc td code {
+  white-space: nowrap;
+  font-size: 0.84rem;
+  padding: 2px 6px;
 }
 
 .vp-doc tr:nth-child(2n) {
