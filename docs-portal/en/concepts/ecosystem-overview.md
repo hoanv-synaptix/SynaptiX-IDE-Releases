@@ -17,33 +17,86 @@ Rather than forcing automation engineers to juggle separate tools for discrete/a
 
 Within an industrial plant or distributed infrastructure deployment, a **SynaptiX Edge Device** operates at the boundary between physical field instrumentation (sensors, relays, VFDs, power meters) and supervisory IT/OT platforms (**SynaptiX IDE**, local SCADA masters, MQTT brokers, and REST webhooks).
 
-```mermaid
-flowchart LR
-    subgraph Field["Field Instrumentation Layer"]
-        DIO["Discrete & Analog I/O<br/>(DI0..7, DO0..7, AI0..3, PWM/PTO)"]
-        RS485["RS-485 Slaves<br/>(VFDs, Power Meters, Transmitters)"]
-    end
+<div class="synx-arch-grid">
+  <!-- Card 1: Field -->
+  <div class="synx-arch-card">
+    <div class="synx-arch-header">
+      <div class="synx-arch-icon">1</div>
+      <div class="synx-arch-title-wrap">
+        <h4 class="synx-arch-title">Field Instrumentation Layer</h4>
+        <span class="synx-arch-subtitle">Sensors & Actuators</span>
+      </div>
+    </div>
+    <div class="synx-arch-items">
+      <div class="synx-arch-item">
+        <strong>Direct Physical I/O (Discrete & Analog)</strong>
+        <span>DI0..7 (Optocoupler), DO0..7 (Transistor), AI0..3 (4-20mA / 0-10V)</span>
+        <span class="synx-arch-badge">IEC 61131-2</span>
+      </div>
+      <div class="synx-arch-item">
+        <strong>RS-485 Fieldbus Slaves</strong>
+        <span>VFD drives, digital power meters, environmental transmitters</span>
+        <span class="synx-arch-badge">Modbus RTU • 9600..115200 bps</span>
+      </div>
+    </div>
+  </div>
 
-    subgraph Edge["SynaptiX Edge Runtime"]
-        TAG["Unified Tag Memory<br/>(Up to 128 Physical & Virtual Tags)"]
-        PIPE["Deterministic Scan Engine<br/>(4-Stage Rules + Timers/Counters/Scale)"]
-        ASYNC["Async Fieldbus & IIoT Workers<br/>(Modbus Master, MQTT, HTTP, TCP)"]
-        DIO <--> TAG
-        TAG <--> PIPE
-        RS485 <--> ASYNC
-        ASYNC <--> TAG
-    end
+  <!-- Card 2: Edge -->
+  <div class="synx-arch-card">
+    <div class="synx-arch-header">
+      <div class="synx-arch-icon">2</div>
+      <div class="synx-arch-title-wrap">
+        <h4 class="synx-arch-title">SynaptiX Edge Runtime</h4>
+        <span class="synx-arch-subtitle">Deterministic Core Engine</span>
+      </div>
+    </div>
+    <div class="synx-arch-items">
+      <div class="synx-arch-item">
+        <strong>Unified Tag Memory</strong>
+        <span>Up to 128 global slots: DI, DO, AI, VREG, VREG_RETAIN, COUNTER</span>
+        <span class="synx-arch-badge">Zero-Allocation</span>
+      </div>
+      <div class="synx-arch-item">
+        <strong>Deterministic Scan Engine</strong>
+        <span>Rigid 10ms cycle: Input sampling → FBD logic execution → Output commit</span>
+        <span class="synx-arch-badge">Hard Real-time</span>
+      </div>
+      <div class="synx-arch-item">
+        <strong>Async Fieldbus & IIoT Workers</strong>
+        <span>Modbus RTU Master Poller, MQTT Client, HTTP Webhooks, TCP Client</span>
+        <span class="synx-arch-badge">Non-blocking DMA</span>
+      </div>
+    </div>
+  </div>
 
-    subgraph Supervisory["Engineering, Supervisory & Cloud Layer"]
-        IDE["SynaptiX IDE Workbench<br/>(USB CDC Serial / Modbus TCP)"]
-        SCADA["HMI / SCADA Poller<br/>(Fixed Modbus Slave Map)"]
-        CLOUD["IIoT Cloud & Enterprise<br/>(MQTT TLS Broker / REST / Raw Socket)"]
-    end
-
-    Edge <-->|"Compile, Atomic Deploy & 20 FPS Live Watch"| IDE
-    Edge <-->|"RTU / TCP Slave Polling"| SCADA
-    ASYNC <-->|"JSON Telemetry & Remote Commands"| CLOUD
-```
+  <!-- Card 3: Supervisory -->
+  <div class="synx-arch-card">
+    <div class="synx-arch-header">
+      <div class="synx-arch-icon">3</div>
+      <div class="synx-arch-title-wrap">
+        <h4 class="synx-arch-title">Engineering, SCADA & Cloud</h4>
+        <span class="synx-arch-subtitle">Supervisory IT / OT Layer</span>
+      </div>
+    </div>
+    <div class="synx-arch-items">
+      <div class="synx-arch-item">
+        <strong>SynaptiX IDE Engineering Workbench</strong>
+        <span>Two-phase atomic commit deploy, 20 FPS live telemetry diagnostics</span>
+        <span class="synx-arch-badge">USB CDC / Modbus TCP :502</span>
+      </div>
+      <div class="synx-arch-item">
+        <strong>Local SCADA / HMI Stations</strong>
+        <span>Ignition, WinCC, Kepware polling the Fixed SCADA Slave Register Map</span>
+        <span class="synx-arch-badge">FC01..04 / FC05..16</span>
+      </div>
+      <div class="synx-arch-item">
+        <strong>Enterprise IIoT Cloud Platforms</strong>
+        <span>Publishing periodic telemetry JSON uplinks to AWS IoT, EMQX, HiveMQ</span>
+        <span class="synx-arch-badge">MQTT TLS 1.2/1.3</span>
+      </div>
+    </div>
+  </div>
+</div>
 
 ### Software-First Engineering Workflow
 

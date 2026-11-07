@@ -49,20 +49,122 @@ Khi một trạm biên tại nhà máy bị cúp nguồn 24V DC đột ngột ho
 
 Đáp ứng tiêu chuẩn an ninh mạng công nghiệp **IEC 62443-4-2**, SynaptiX IDE tích hợp sẵn bộ phân tích chứng chỉ X.509 và cơ chế nạp phân mảnh an toàn hỗ trợ cả **TLS Một chiều (Server TLS)** lẫn **TLS Xác thực Hai chiều (`mTLS`)**:
 
-```mermaid
-sequenceDiagram
-    participant IDE as "SynaptiX IDE (Ctrl+Shift+M)"
-    participant Edge as "Thiết bị Biên SynaptiX"
-    participant Broker as "Enterprise MQTT Broker (:8883)"
+<div class="synx-node-chain" style="margin-bottom: 12px;">
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>PHA 1</span>
+      </div>
+      <span class="synx-node-status">X.509 PARSE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Giải Mã X.509</span>
+        <span class="synx-node-alias">Kiểm Tra Subject</span>
+        <span class="synx-node-val">Hạn Dùng &amp; Fingerprint</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
 
-    IDE->>IDE: Phân tích X.509 PEM/CRT/PFX (Kiểm tra Subject, Hạn dùng & SHA-256)
-    IDE->>Edge: Nạp Root CA + Client Cert + Private Key (Phân mảnh An toàn)
-    Edge->>Broker: TCP SYN (:8883) + TLS ClientHello (SNI Hostname, TLS 1.2/1.3)
-    Broker-->>Edge: ServerHello + Chuỗi Chứng chỉ Máy chủ
-    Edge->>Edge: Đối chiếu Root CA & Tên miền SAN/Hostname
-    Edge->>Broker: Xuất trình Client Certificate + Chữ ký Khóa riêng (mTLS)
-    Broker-->>Edge: Mã hóa Phiên + Gói xác nhận MQTT CONNACK (0x00 Thành công)
-```
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Flash</span>
+  </div>
+
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,13 L5,13 L5,9.5 L8,9.5 L8,6 L11,6 L11,3 L14,3" /></svg>
+        <span>PHA 2</span>
+      </div>
+      <span class="synx-node-status">TRANSFER</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">IDE ➔ Thiết Bị</span>
+        <span class="synx-node-alias">Chuyển Giao Khóa</span>
+        <span class="synx-node-val">CA + Client Cert + Key</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">:8883</span>
+  </div>
+
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M10,1 L5,8.5 L8.5,8.5 L6,15 L11,7.5 L7.5,7.5 Z" /></svg>
+        <span>PHA 3</span>
+      </div>
+      <span class="synx-node-status">TLS 1.3</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">TLS Bắt Tay</span>
+        <span class="synx-node-alias">Cổng 8883 MQTTS</span>
+        <span class="synx-node-val">TCP SYN + ClientHello</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">mTLS</span>
+  </div>
+
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 L13.5,4 L13.5,9.5 Q13.5,13.5 8,15 Q2.5,13.5 2.5,9.5 L2.5,4 Z" /></svg>
+        <span>PHA 4</span>
+      </div>
+      <span class="synx-node-status">MUTUAL</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Đối Chiếu mTLS</span>
+        <span class="synx-node-alias">Hai Chiều Xác Thực</span>
+        <span class="synx-node-val">Verify CA &amp; Sign</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Connack</span>
+  </div>
+
+  <div class="synx-canvas-node is-step is-done">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>PHA 5</span>
+      </div>
+      <span class="synx-node-status is-active">● CONNECTED</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Phiên Bảo Mật</span>
+        <span class="synx-node-alias">MQTT CONNACK</span>
+        <span class="synx-node-val">Kết Nối OK (0x00)</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 1. **Chứng chỉ Gốc Máy chủ (`Root CA Certificate` — `BrowseCaCert`):**
    - Nạp tệp `.crt`, `.cer` hoặc `.pem` (ví dụ: *Amazon Root CA 1*, *DigiCert Global Root G2* hoặc CA nội bộ của nhà máy).

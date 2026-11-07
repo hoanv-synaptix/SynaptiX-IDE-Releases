@@ -69,23 +69,11 @@ Khi nhấn `F7` (hoặc `Ctrl+F5`), trình biên dịch quét kiểm tra toàn b
 
 ## 4. Cây Quyết định Chẩn đoán Nhanh Tại Hiện trường
 
-```mermaid
-flowchart TD
-    Start["Phát sinh Sự cố Khi Nghiệm thu Tủ điện"] --> Q1{"Triệu chứng cụ thể là gì?"}
-    Q1 -->|"Không thấy Cổng USB CDC"| U1["1. Kiểm tra Nguồn 24V DC & Cáp USB-C Có Truyền Dữ liệu"]
-    U1 --> U2["2. Mở Windows Device Manager -> Mục Ports (COM & LPT)"]
-    U2 --> U3["3. Đóng Phần mềm Terminal Đang Chiếm Cổng COM -> Nhấn F4"]
-
-    Q1 -->|"Từ chối Kết nối Modbus TCP :502"| T1["1. Chạy lệnh Ping Địa chỉ IPv4 Từ Máy tính"]
-    T1 --> T2["2. Kiểm tra Subnet Mask & Tường lửa VLAN Mở Cổng 502"]
-    T2 --> T3["3. Xác nhận Đèn Link Ethernet hoặc Wi-Fi Báo 'Đã nhận IP'"]
-
-    Q1 -->|"Biến Hiện Cảnh báo [STALE]"| S1["1. Mở Ctrl+Shift+D Wire Inspector -> Nhấn 'Đọc Thử 1 Lần'"]
-    S1 --> S2{"Có nhận được Byte RX nào không?"}
-    S2 -->|"0 Byte (Timeout)"| S3["Kiểm tra Nguồn Cảm biến, Slave ID, Baud Rate & Đảo dây A/B"]
-    S2 -->|"Lỗi CRC / Nhiễu khung"| S4["Đồng bộ Parity (8N1/8E1) & Bật Điện trở Đầu cuối 120 Ohm"]
-    S2 -->|"Ngoại lệ 0x02 / 0x03"| S5["Chỉnh Lệch Địa chỉ 1-Based/0-Based & Độ rộng Thanh ghi"]
-```
+| Triệu chứng Sự cố | Nguyên nhân Khả dĩ Nhất | 3 Bước Xử lý Tức thì Tại Hiện trường |
+| :--- | :--- | :--- |
+| **Không nhận Cổng ảo USB CDC** | Dùng nhầm cáp sạc 2 sợi (thiếu cặp dữ liệu D+/D-) hoặc phần mềm khác đang khóa độc quyền cổng COM. | 1. Đổi sang cáp USB-C chuẩn truyền dữ liệu.<br/>2. Kiểm tra Windows Device Manager mục Ports (COM & LPT).<br/>3. Đóng terminal/ModScan khác, nhấn **F4** quét lại. |
+| **Từ chối Kết nối Modbus TCP (:502)** | Sai lớp mạng IPv4 máy tính, trùng IP tĩnh hoặc tường lửa VLAN chặn cổng 502. | 1. Dùng lệnh `ping <IP>` trên máy tính để kiểm tra vật lý.<br/>2. Xác minh máy tính cùng lớp mạng với thiết bị (VD `192.168.1.x /24`).<br/>3. Mở thông cổng TCP 502 trên switch quản lý mạng. |
+| **Biến Truyền thông báo [STALE]** | Mất nguồn cảm biến RS-485, ngược cực A/B, sai Baud rate/Parity hoặc lệch offset 40001. | 1. Nhấn **Ctrl+Shift+D** Wire Inspector, bấm *Đọc thử 1 lần*.<br/>2. Nếu 0 byte RX: đảo 2 dây RS-485 A(+) và B(-).<br/>3. Nếu lỗi CRC: đồng bộ Parity (8N1/8E1) và đóng trở cuối 120Ω. |
 
 ### Quy trình Xử lý 3 Tình huống Phổ biến Nhất
 

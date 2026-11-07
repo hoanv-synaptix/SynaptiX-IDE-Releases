@@ -50,30 +50,12 @@ Khối `ACTION` đóng vai trò điểm kết thúc nhánh luật nên chỉ có
 
 ---
 
-## 4. Máy Trạng thái / Giản đồ Thời gian
+## 4. Cơ chế Thực thi Nguyên tử trong Vòng quét
 
-Lưu đồ dưới đây mô tả cơ chế phân luồng thực thi nguyên tử của khối `ACTION` ngay khi nhận xung kích hoạt tại chân `In`:
-
-```mermaid
-flowchart LR
-    TRIG["Xung Sự kiện Đi vào Chân In<br/>(Đã vượt qua Giai đoạn 1-3)"]
-    MODE{"Phân luồng theo<br/>ActionType"}
-
-    SET["SET_TAG<br/>TargetTag := ActionParam<br/>(BOOL / INT32 / IEEE-754 REAL)"]
-    TOG["TOGGLE_TAG<br/>TargetTag := (TargetTag == 0) ? 1 : 0"]
-    INC["INC_COUNTER<br/>TargetTag := TargetTag + ActionParam"]
-    SCL["SCALE_TAG / WRITE_REMOTE<br/>Chốt Giá trị Quy đổi hoặc Ghi Xa"]
-    EVT["SEND_ALARM / LOG_EVENT<br/>Đẩy Bản ghi Sự kiện Kèm Thời gian"]
-
-    COMMIT["Cập nhật Ảnh Tiến trình &amp;<br/>Xuất Chân Cứng DO / Telemetry"]
-
-    TRIG --> MODE
-    MODE -- "SET_TAG" --> SET --> COMMIT
-    MODE -- "TOGGLE_TAG" --> TOG --> COMMIT
-    MODE -- "INC_COUNTER" --> INC --> COMMIT
-    MODE -- "SCALE / REMOTE" --> SCL --> COMMIT
-    MODE -- "ALARM / LOG" --> EVT --> COMMIT
-```
+Khối `ACTION` đóng vai trò chấp hành ở chặng cuối của chuỗi luật 4 giai đoạn. Ngay khi nhận được xung kích hoạt tại chân `In`:
+- **Thực thi lập tức:** Lệnh gán (`SET_TAG`), đảo trạng thái (`TOGGLE_TAG`) hoặc tăng bộ đếm (`INC_COUNTER`) được ghi thẳng vào bộ nhớ biến `TargetTag` trong cùng chu kỳ quét hiện hành.
+- **Bảo toàn kiểu dữ liệu:** Giá trị ghi luôn tuân thủ kiểu vật lý của `TargetTag` (số nguyên `INT32`, số thực `REAL` hoặc logic `BOOL`).
+- **Xuất ngõ ra vật lý:** Mọi thay đổi trên biến `DO` được chuyển tới cọc ngõ ra phần cứng ngay ở bước xuất ảnh tiến trình ở cuối chu kỳ quét.
 
 ---
 
@@ -115,14 +97,116 @@ Một nút nhấn nhả tự phục hồi trên mặt tủ (`DI2`) được dùn
 3. Rẽ nhánh dây thứ hai từ cùng chân `TRIGGER.Out` sang khối **`ACTION`** thứ hai cấu hình `ActionType = INC_COUNTER`, `TargetTag = VREG_R0`, `ActionParam = 1` (`CustomLabel = "Đếm Chu kỳ Đóng cắt"`).
 4. Nhấn `F5` kiểm thử trên **Simulator**: nhấp liên tiếp nút mô phỏng `DI2` (`0 → 1` giữ trên `60 ms`), xác nhận `DO1` đảo trạng thái gọn gàng `0 → 1 → 0 → 1` trong khi `VREG_R0` tăng đều `1 → 2 → 3` không hề bị đếm đúp do dội nút nhấn.
 
-```mermaid
-flowchart LR
-    IN_BTN["INPUT: DI2<br/>(Nút nhấn Bồn Khuấy)"]
-    TRG_EDGE["TRIGGER: ON_RISE<br/>(ForMs = 60 ms)"]
-    ACT_TOG["ACTION: TOGGLE_TAG<br/>(TOGGLE DO1)"]
-    ACT_CNT["ACTION: INC_COUNTER<br/>(VREG_R0 += 1)"]
+<div class="synx-node-chain" style="margin-bottom: 12px;">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● DI2</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Nút Nhấn Tủ</span>
+        <span class="synx-node-alias">Bồn Khuấy (NO)</span>
+        <span class="synx-node-val">DI2 • BOOL</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
 
-    IN_BTN -- "Out -> In" --> TRG_EDGE
-    TRG_EDGE -- "Out -> In" --> ACT_TOG
-    TRG_EDGE -- "Out -> In (Rẽ nhánh)" --> ACT_CNT
-```
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">DI2 Raw</span>
+  </div>
+
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M10,1 L5,8.5 L8.5,8.5 L6,15 L11,7.5 L7.5,7.5 Z" /></svg>
+        <span>TRIGGER</span>
+      </div>
+      <span class="synx-node-status is-rise">● 60ms DWELL</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Lọc Dội Tiếp Điểm</span>
+        <span class="synx-node-alias">Sườn Lên Khởi Động</span>
+        <span class="synx-node-val">ON_RISE • 60 ms</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">PULSE</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● TOGGLE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Đảo Bồn Khuấy</span>
+        <span class="synx-node-alias">Contactor Động Cơ</span>
+        <span class="synx-node-val">TOGGLE DO1</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
+
+<div class="synx-node-chain" style="margin-top: 12px;">
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M10,1 L5,8.5 L8.5,8.5 L6,15 L11,7.5 L7.5,7.5 Z" /></svg>
+        <span>TRIGGER</span>
+      </div>
+      <span class="synx-node-status is-rise">● BRANCH</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Rẽ Nhánh Dây</span>
+        <span class="synx-node-alias">Cùng Xung Kích Hoạt</span>
+        <span class="synx-node-val">TRIGGER.Out</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">PULSE</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● COUNTER</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Đếm Lần Đóng Cắt</span>
+        <span class="synx-node-alias">Thanh Ghi Lưu Giữ</span>
+        <span class="synx-node-val">VREG_R0 += 1</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>

@@ -52,26 +52,12 @@ Khối **`TRIGGER`** chuyển đổi tín hiệu trạng thái liên tục, bi�
 
 ---
 
-## 4. Máy Trạng thái / Giản đồ Thời gian
+## 4. Cơ chế Lọc Chống Dội & Phát Xung Sự kiện
 
-Sơ đồ trạng thái dưới đây minh họa cách khối `TRIGGER` (`ON_RISE` kèm `ForMs > 0`) loại bỏ hoàn toàn xung nhiễu dội tiếp điểm ngắn hơn `ForMs` và chỉ xuất đúng một xung thực thi duy nhất khi tín hiệu đã ổn định đủ thời gian quy định:
-
-```mermaid
-stateDiagram-v2
-    [*] --> IdleLow : "In == 0"
-    IdleLow : "CHỜ SƯỜN LÊN (In = 0)"
-    DwellTiming : "ĐANG LỌC CHỐNG DỘI (0 < Elapsed < ForMs)"
-    Fired : "PHÁT XUNG SỰ KIỆN (Out = 1 trong 1 Chu kỳ)"
-    LatchedHigh : "GIỮ ĐÃ KÍCH (In == 1, Chờ về 0 để Nạp lại)"
-
-    IdleLow --> Fired : "In: 0 -> 1 (khi ForMs == 0)"
-    IdleLow --> DwellTiming : "In: 0 -> 1 (khi ForMs > 0)"
-    DwellTiming --> IdleLow : "In tụt về 0 trước ForMs (Loại bỏ Nhiễu)"
-    DwellTiming --> Fired : "Elapsed >= ForMs (Xác nhận Hợp lệ)"
-    Fired --> LatchedHigh : "Chu kỳ kế tiếp (In vẫn bằng 1)"
-    Fired --> IdleLow : "Chu kỳ kế tiếp (In == 0)"
-    LatchedHigh --> IdleLow : "In: 1 -> 0 (Tái vũ trang Trigger)"
-```
+Khối `TRIGGER` phát xung sự kiện độ rộng đúng 1 chu kỳ quét máy:
+- **Phát xung tức thì (`ForMs = 0`):** Ngay khi bắt được sườn thỏa mãn (`RISING`, `FALLING`, hoặc `ANY_CHANGE`), chân `Out` phát ra một xung `1` duy nhất và tự động xóa về `0` ở chu kỳ quét kế tiếp.
+- **Lọc chống dội (`ForMs > 0`):** Tín hiệu đầu vào phải duy trì liên tục ở mức mới đủ `ForMs` mili-giây mới phát xung. Mọi gai nhiễu chập chờn hoặc rung cơ khí ngắn hơn `ForMs` đều bị triệt tiêu hoàn toàn.
+- **Tự động tái vũ trang:** Sau khi phát xung, khối giữ trạng thái chờ cho đến khi tín hiệu đầu vào nhả về mức đối nghịch trước khi sẵn sàng bắt sườn xung tiếp theo.
 
 ---
 
@@ -109,19 +95,119 @@ Hệ thống đèn pha chiếu sáng vành đai nhà máy đấu tại ngõ ra `
 3. Nối chân `TRIGGER.Out` sang khối **[`GUARD`](/vi/blocks/guard)** gắn `GuardTag = DI3` (`Negate = false`, cho qua khi `DI3 = 1`), sau đó nối `GUARD.Out` tới khối **[`ACTION`](/vi/blocks/action)** (`ActionType = SET_TAG`, `TargetTag = DO2`, `ActionParam = 1`).
 4. Thêm nhánh thứ hai gồm khối `TRIGGER` (`TriggerType = TIME_WINDOW`, chế độ `Tại thời điểm = 06:01`) nối thẳng tới khối **[`ACTION`](/vi/blocks/action)** (`ActionType = SET_TAG`, `TargetTag = DO2`, `ActionParam = 0`) để ngắt dàn đèn khi trời sáng.
 
-```mermaid
-flowchart LR
-    RTC_ON["TRIGGER: TIME_WINDOW<br/>(Khung giờ 22:00 -> 06:00)"]
-    GRD_AUTO["GUARD: DI3<br/>(Chế độ Auto == 1)"]
-    ACT_ON["ACTION: SET_TAG<br/>(DO2 = 1)"]
+<div class="synx-node-chain" style="margin-bottom: 12px;">
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 A6.5,6.5 0 1 1 1.5,8 M8,1.5 L8,8 L11,10" /></svg>
+        <span>TRIGGER: RTC</span>
+      </div>
+      <span class="synx-node-status is-active">● WINDOW</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">22:00 .. 06:00</span>
+        <span class="synx-node-alias">Khung Giờ Ca Đêm</span>
+        <span class="synx-node-val">Vắt Qua Nửa Đêm</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
 
-    RTC_OFF["TRIGGER: TIME_WINDOW<br/>(Tại thời điểm 06:01)"]
-    ACT_OFF["ACTION: SET_TAG<br/>(DO2 = 0)"]
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">IN_WINDOW</span>
+  </div>
 
-    RTC_ON -- "Out -> In" --> GRD_AUTO
-    GRD_AUTO -- "Out -> In" --> ACT_ON
-    RTC_OFF -- "Out -> In" --> ACT_OFF
-```
+  <div class="synx-canvas-node is-guard">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 L13.5,4 L13.5,9.5 Q13.5,13.5 8,15 Q2.5,13.5 2.5,9.5 L2.5,4 Z" /></svg>
+        <span>GUARD</span>
+      </div>
+      <span class="synx-node-status is-pass">● PASS</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DI3 == 1</span>
+        <span class="synx-node-alias">Chế Độ Tự Động</span>
+        <span class="synx-node-val">Công Tắc Chọn Auto</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">ENABLE</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● SET 1</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DO2 = 1</span>
+        <span class="synx-node-alias">Bật Dàn Đèn Pha</span>
+        <span class="synx-node-val">Chiếu Sáng Ban Đêm</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
+
+<div class="synx-node-chain" style="margin-top: 12px;">
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 A6.5,6.5 0 1 1 1.5,8 M8,1.5 L8,8 L11,10" /></svg>
+        <span>TRIGGER: RTC</span>
+      </div>
+      <span class="synx-node-status is-active">● AT_TIME</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">06:01 AM</span>
+        <span class="synx-node-alias">Bình Minh (Hết Giờ)</span>
+        <span class="synx-node-val">Thời Điểm Tắt Đèn</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">FIRE</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-pass">● SET 0</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DO2 = 0</span>
+        <span class="synx-node-alias">Tắt Dàn Đèn Pha</span>
+        <span class="synx-node-val">Tiết Kiệm Điện Ban Ngày</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 ::: tip Đồng bộ Đồng hồ RTC Trước khi Vận hành
 Trước khi nạp các luật sử dụng `TIME_WINDOW` xuống thiết bị hiện trường, hãy mở [Tab Thiết bị — Device (`Ctrl+1`)](/vi/workspaces/device-tab) để đồng bộ thời gian thực từ máy tính kỹ thuật xuống bộ điều khiển biên **SynaptiX Edge Controller**.

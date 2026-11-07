@@ -8,7 +8,7 @@ const { Layout } = DefaultTheme
 
 <template>
   <Layout>
-    <template #nav-bar-title-after>
+    <template #nav-bar-content-after>
       <NavbarVersionBadge />
     </template>
     <template #doc-before>

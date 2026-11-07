@@ -17,27 +17,33 @@ Các bộ chuyển đổi biên (Edge Gateway) thông thường hay mắc một 
 
 Mỗi chu kỳ quét tất định tuần tự đi qua 4 bước khép kín, đồng thời trao đổi dữ liệu nguyên tử ở biên chu kỳ với các tiến trình truyền thông chạy nền:
 
-```mermaid
-flowchart TD
-    subgraph FastLoop["Vòng Quét Điều khiển Thời gian Thực Tất định (Sub-Millisecond)"]
-        S1["1. Chốt Ảnh Ngõ vào & Đồng bộ Hàng đợi Nhận<br/>Lấy mẫu DI0..7, AI0..3, Đồng hồ RTC & Nhận kết quả đọc Bất đồng bộ"]
-        S2["2. Thực thi Khối Hàm Có Trạng thái<br/>Cập nhật SCALE, TON, TOF, TP, CYCLE_TIMER, CTU, CTD -> Ghi Tag Đích"]
-        S3["3. Đánh giá Tuần tự Chuỗi Luật 4 Giai đoạn (Luật #0 .. #99)<br/>INPUT -> TRIGGER / COMPARATOR -> GUARD -> ACTION"]
-        S4["4. Xuất Ngõ ra Vật lý & Đẩy Lệnh Hàng đợi Gửi<br/>Xuất DO0..7 / PWM / PTO, Lưu Flash VREG_RETAIN & Đẩy yêu cầu Mạng/RS-485"]
-        S1 --> S2 --> S3 --> S4
-        S4 -->|"Nhịp Monotonic Tiếp theo"| S1
-    end
-
-    subgraph AsyncPool["Hàng đợi Tiến trình Truyền thông Bất đồng bộ (Không Chặn Vòng Quét)"]
-        Q_MB["Hàng đợi RS-485 Master<br/>(MB_READ / MB_WRITE)"]
-        Q_NET["Hàng đợi IIoT & Socket<br/>(MQTT_PUB / MQTT_SUB / HTTP_CLIENT / TCP_CLIENT)"]
-    end
-
-    S4 -.->|"Đẩy Yêu cầu Đọc/Ghi Không Chờ"| Q_MB
-    S4 -.->|"Đẩy Gói tin Đã Đóng gói Macro"| Q_NET
-    Q_MB -.->|"Cập nhật Nguyên tử Tag Khi Hoàn tất"| S1
-    Q_NET -.->|"Cập nhật JSON Nhận / Trạng thái Mạng"| S1
-```
+<div class="synx-pipeline-wrap">
+  <div class="synx-pipeline-grid">
+    <div class="synx-pipeline-card">
+      <span class="synx-pipeline-badge">Bước 01 • Latch</span>
+      <h4 class="synx-pipeline-title">1. Chốt Ảnh Ngõ vào</h4>
+      <p class="synx-pipeline-desc">Đọc đồng loạt trạng thái <code>DI0..7</code>, lấy mẫu cảm biến tương tự <code>AI0..3</code> và chốt bộ đệm dữ liệu nhận mạng.</p>
+    </div>
+    <div class="synx-pipeline-card">
+      <span class="synx-pipeline-badge">Bước 02 • Update</span>
+      <h4 class="synx-pipeline-title">2. Khối Hàm Trạng thái</h4>
+      <p class="synx-pipeline-desc">Cập nhật tích lũy bộ đếm thời gian (<code>TON/TOF/TP</code>), bộ đếm sự kiện (<code>CTU/CTD</code>) và tính toán hiệu chuẩn <code>SCALE</code>.</p>
+    </div>
+    <div class="synx-pipeline-card">
+      <span class="synx-pipeline-badge">Bước 03 • Evaluate</span>
+      <h4 class="synx-pipeline-title">3. Chuỗi Luật Tất định</h4>
+      <p class="synx-pipeline-desc">Đánh giá tuần tự chuỗi luật 4 giai đoạn từ <code>Luật #1</code> đến <code>#100</code>: <code>INPUT → TRIGGER/CMP → GUARD → ACTION</code>.</p>
+    </div>
+    <div class="synx-pipeline-card">
+      <span class="synx-pipeline-badge">Bước 04 • Commit</span>
+      <h4 class="synx-pipeline-title">4. Xuất Ngõ ra Vật lý</h4>
+      <p class="synx-pipeline-desc">Xuất đồng thời trạng thái rơ-le <code>DO0..7</code>, phát xung PWM/PTO và lưu biến vào thanh ghi bền vững Retentive.</p>
+    </div>
+  </div>
+  <div class="synx-pipeline-footer">
+    <span>↺ Chu kỳ quét 10ms khép kín (100 Hz Hard Real-time Loop) • Dữ liệu chốt an toàn ở biên chu kỳ</span>
+  </div>
+</div>
 
 ### Các Cam kết Tất định Thời gian Thực
 - **Đóng băng Ảnh Ngõ vào (Input Image Freeze):** Giá trị `DI0..7`, `AI0..3` và dữ liệu nhận từ mạng được chốt đồng loạt ngay đầu chu kỳ (`Bước 1`). Giá trị cảm biến không bao giờ biến đổi bất thường giữa chừng khi đang quét từ `Luật #0` đến `Luật #99`.
@@ -50,12 +56,98 @@ flowchart TD
 
 Khi kỹ sư kéo-thả và nối dây các khối trên [Sơ đồ Logic — Logic Graph](/vi/workspaces/logic-graph-tab) (`Ctrl+2`) rồi nhấn **Biên dịch (`F7`)**, trình biên dịch đồ thị sẽ hạ bậc sơ đồ thành các **Luật 4 Giai đoạn Tất định** (tối đa **100 luật** trên `SynaptiX Controller`, `SynaptiX Remote I/O`, `SynaptiX Relay Unit`; tối đa **50 luật** trên các cấu hình nhỏ gọn và cổng giao thức):
 
-```mermaid
-flowchart LR
-    P1["Giai đoạn 1: INPUT<br/>Chọn Tag Nguồn Tín hiệu<br/>(DI, AI, VFLAG, VREG, COUNTER)"] --> P2["Giai đoạn 2: TRIGGER hoặc COMPARATOR<br/>Phát hiện Sườn / Mức / Lịch RTC<br/>hoặc So sánh Ngưỡng (==, !=, &gt;, &gt;=, &lt;, &lt;=)"]
-    P2 --> P3["Giai đoạn 3: GUARD (Tùy chọn)<br/>Cổng Khóa Liên động An toàn<br/>(Điều kiện Cho phép Thứ cấp)"]
-    P3 --> P4["Giai đoạn 4: ACTION<br/>Thực thi Lệnh Đích Tất định<br/>(SET, RESET, TOGGLE, COPY, INC, DEC)"]
-```
+<div class="synx-node-chain">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>GIAI ĐOẠN 1</span>
+      </div>
+      <span class="synx-node-status is-live">● INPUT</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Biến Nguồn</span>
+        <span class="synx-node-alias">INPUT STAGE</span>
+        <span class="synx-node-val">DI, AI, VREG, Cờ</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Dữ Liệu Thô</span>
+  </div>
+
+  <div class="synx-canvas-node is-comparator">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M3.5,6 L8,9 L3.5,12 M9.5,7 L13,7 M9.5,10.5 L13,10.5" /></svg>
+        <span>GIAI ĐOẠN 2</span>
+      </div>
+      <span class="synx-node-status is-true">● EVALUATE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">TRIGGER / CMP</span>
+        <span class="synx-node-alias">ĐÁNH GIÁ SỰ KIỆN</span>
+        <span class="synx-node-val">Sườn Xung / Ngưỡng So Sánh</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">TRUE</span>
+  </div>
+
+  <div class="synx-canvas-node is-guard">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 L13.5,4 L13.5,9.5 Q13.5,13.5 8,15 Q2.5,13.5 2.5,9.5 L2.5,4 Z" /></svg>
+        <span>GIAI ĐOẠN 3</span>
+      </div>
+      <span class="synx-node-status is-pass">● INTERLOCK</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">GUARD (Tùy chọn)</span>
+        <span class="synx-node-alias">CỔNG LIÊN ĐỘNG</span>
+        <span class="synx-node-val">Khóa An Toàn Phép AND</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">ENABLE</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>GIAI ĐOẠN 4</span>
+      </div>
+      <span class="synx-node-status is-active">● COMMIT</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">ACTION / DIRECT</span>
+        <span class="synx-node-alias">CHẤP HÀNH TÁC VỤ</span>
+        <span class="synx-node-val">SET, RESET, TOGGLE, COPY</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 | Giai đoạn Chuỗi | Khối Trực quan | Nhiệm vụ Thực thi trong Vòng quét |
 | :--- | :--- | :--- |

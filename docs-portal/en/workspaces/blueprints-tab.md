@@ -64,13 +64,122 @@ The **Blueprints Library** presents a clean, neutral-slate card gallery organize
 5. **SynaptiX IDE** populates the schematic on clean grid coordinates (`X = 80, 340, 600, 860`) and transitions automatically to the [Logic Graph Canvas](/workspaces/logic-graph-tab) (`Ctrl+2`).
 6. Press `F5` to launch the **Offline Simulator**, adjust the simulated `AI0` slider or toggle `DI0`, and watch real-time values propagate across the pre-wired blocks.
 
-```mermaid
-flowchart LR
-    B["Select Pattern in Blueprints (Ctrl+5)"] -->|"Click Apply Blueprint"| T["Auto-Configure Tag Aliases & Data Types"]
-    T --> G["Place & Wire Nodes on Logic Graph (Ctrl+2)"]
-    G --> C["Customize Thresholds / Channels in Right Inspector"]
-    C --> V["Press F7 Compile & F5 Simulate or Ctrl+F5 Deploy"]
-```
+<div class="synx-node-chain" style="margin-bottom: 12px;">
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>STEP 1</span>
+      </div>
+      <span class="synx-node-status">SELECT</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Select Pattern</span>
+        <span class="synx-node-alias">Standard Library</span>
+        <span class="synx-node-val">Ctrl+5 Blueprints</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Apply</span>
+  </div>
+
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M3.5,6 L8,9 L3.5,12 M9.5,7 L13,7 M9.5,10.5 L13,10.5" /></svg>
+        <span>STEP 2</span>
+      </div>
+      <span class="synx-node-status">TAGS</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Auto-Provision</span>
+        <span class="synx-node-alias">Tag Registration</span>
+        <span class="synx-node-val">Aliases & Types</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Spawn</span>
+  </div>
+
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 L13.5,4 L13.5,9.5 Q13.5,13.5 8,15 Q2.5,13.5 2.5,9.5 L2.5,4 Z" /></svg>
+        <span>STEP 3</span>
+      </div>
+      <span class="synx-node-status">CANVAS</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Layout Blocks</span>
+        <span class="synx-node-alias">Snapped Grid</span>
+        <span class="synx-node-val">Ctrl+2 Logic Graph</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Tune</span>
+  </div>
+
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,13 L5,13 L5,9.5 L8,9.5 L8,6 L11,6 L11,3 L14,3" /></svg>
+        <span>STEP 4</span>
+      </div>
+      <span class="synx-node-status">PARAMS</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Tailor Settings</span>
+        <span class="synx-node-alias">Field Specifics</span>
+        <span class="synx-node-val">Right Inspector</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Run</span>
+  </div>
+
+  <div class="synx-canvas-node is-step is-done">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>STEP 5</span>
+      </div>
+      <span class="synx-node-status is-active">● OPERATE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Verify & Run</span>
+        <span class="synx-node-alias">Simulate & Deploy</span>
+        <span class="synx-node-val">F7 / F5 / Ctrl+F5</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 ### Procedure 3.2: Customizing a Blueprint for Field Cabinet Wiring
 

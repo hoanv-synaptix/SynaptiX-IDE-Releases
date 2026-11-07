@@ -48,15 +48,14 @@ Trong suốt quá trình chạy liên tục hoặc nhích từng bước `StepSc
 
 Sau khi mạch logic đã vượt qua kiểm thử ngoại tuyến và được nạp nguyên tử (`Ctrl+F5`) xuống bo mạch SynaptiX thực tế đang kết nối qua **USB CDC** hoặc **Modbus TCP (`F4`)**, hãy mở [Sơ đồ Logic (`Ctrl+2`)](/vi/workspaces/logic-graph-tab) và nhấn phím `F8` để bật chế độ **Online Live Debug**.
 
-```mermaid
-flowchart LR
-    HW["Thiết bị SynaptiX Vật lý (Quét 10 ms)"] -->|"Luồng Đẩy / Đọc Khối"| Rx["Kho Trạng thái Phản ứng (Reactive Store)"]
-    Rx -->|"Giảm mẫu & Chống rung (50 ms / 20 FPS)"| UI["Sơ đồ Khối Logic (Lớp phủ Trực tuyến F8)"]
-    UI --> W["Dây dẫn Boolean Đang Dẫn điện (Xanh lá)"]
-    UI --> V["Huy hiệu Giá trị Chân cắm (INT32 / REAL)"]
-    UI --> T["Thanh Đếm thời gian ET / PT"]
-    UI --> S["Cảnh báo Chất lượng [STALE]"]
-```
+::: tip Nhận diện Trạng thái Trực tiếp trên Sơ đồ khi Bật F8
+Khi nhấn **F8**, Sơ đồ Logic (`Logic Graph`) chuyển thành màn hình giám sát thời gian thực:
+- 🟢 **Dây dẫn sáng xanh:** Đang có tín hiệu điện kích hoạt (`TRUE` / mức `1`).
+- ⚫ **Dây xám:** Không có tín hiệu kích hoạt (`FALSE` / mức `0`).
+- 🔢 **Huy hiệu số chân khối:** Hiển thị trực tiếp giá trị đo thực tế (`INT32`, `REAL`, đơn vị đo).
+- ⏱️ **Tiến độ đếm:** Hiển thị thời gian thực trôi qua (`ET` / `PT`) của các bộ hẹn giờ `TON`, `TOF`, `TP`.
+- ⚠️ **Huy hiệu `[STALE]`:** Cảnh báo đứt cáp hoặc mất tín hiệu cảm biến RS-485 / MQTT.
+:::
 
 ### 2.1 Các Lớp phủ Thị giác Thời gian thực Trên Canvas
 

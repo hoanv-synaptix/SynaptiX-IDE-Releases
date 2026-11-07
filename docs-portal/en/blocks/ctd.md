@@ -51,18 +51,9 @@ Selecting a `CTD` node on the [Logic Graph Canvas](/workspaces/logic-graph-tab) 
 
 ---
 
-## 4. State Machine & Timing Diagram
+## 4. Scan-Cycle Timing Walkthrough (`PV = 3`)
 
-```mermaid
-stateDiagram-v2
-    [*] --> Depleted : "Unloaded CV = 0 (Q = 1)"
-    Depleted --> Armed : "R = 1 [CV ← PV, Q ← 0]"
-    Armed --> Armed : "CD ↑ and (CV - 1) > 0 [CV ← CV - 1, Q = 0]"
-    Armed --> Depleted : "CD ↑ and (CV - 1) ≤ 0 [CV ← 0, Q = 1]"
-    Armed --> Armed : "R = 1 [CV ← PV, Q = 0]"
-```
-
-### Scan-Cycle Timing Walkthrough (`PV = 3`)
+The table below illustrates a realistic down-counting cycle starting with a loaded tray of 3 parts and asserting `Q = 1` when depleted (`CV ≤ 0`):
 
 | Scan Event | `CD` Pin | `R` Pin | Remaining `CV` | Output `Q` (`CV ≤ 0`) | Canvas Status Pill |
 | :--- | :---: | :---: | :---: | :---: | :--- |
@@ -89,13 +80,143 @@ stateDiagram-v2
 
 **Objective:** Load a tray of `50` aluminum blanks when the operator presses the `DI2_TrayReloaded` pushbutton. Each feeder stroke (`DI0_FeederStroke`) decrements the remaining blank count by `1`. When `0` blanks remain (`Q = 1`), illuminate the amber refill beacon (`DO1_TrayEmptyLamp`) and block the cycle start via a [`GUARD`](/blocks/guard) gate.
 
-```mermaid
-flowchart LR
-    DI0["INPUT: DI0_FeederStroke"] -- "CD (0 → 1)" --> CTD1["CTD Counter<br/>PV = 50 | CV = COUNTER1"]
-    DI2["INPUT: DI2_TrayReloaded"] -- "R (Load 50)" --> CTD1
-    CTD1 -- "Q (CV ≤ 0)" --> LAMP["DIRECT_WRITE: DO1_TrayEmptyLamp"]
-    CTD1 -- "Q (Inhibit)" --> GRD["GUARD: Block Auto-Cycle"]
-```
+<div class="synx-node-chain" style="margin-bottom: 12px;">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● LIVE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DI0 • BOOL</span>
+        <span class="synx-node-alias">Feeder Stroke</span>
+        <span class="synx-node-val">Pusher Limit Switch (CD)</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">DEC</span>
+  </div>
+
+  <div class="synx-canvas-node is-counter">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M5.5,3 L5.5,13 M10.5,3 L10.5,13 M2,6.5 L14,6.5 M2,10 L14,10" /></svg>
+        <span>CTD COUNTER</span>
+      </div>
+      <span class="synx-node-status is-active">● 0 / 50</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● CD</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">PV = 50 • CV COUNTER1</span>
+        <span class="synx-node-alias">Remaining Blanks</span>
+        <span class="synx-node-val">Q = 1 when CV == 0</span>
+      </div>
+      <div class="synx-node-pin is-out">Q ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">EMPTY</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● SET 1</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DO1 = 1</span>
+        <span class="synx-node-alias">Tray Empty Beacon</span>
+        <span class="synx-node-val">Amber Light Refill Alert</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
+
+<div class="synx-node-chain" style="margin-top: 12px;">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● LIVE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DI2 • BOOL</span>
+        <span class="synx-node-alias">Reload Button</span>
+        <span class="synx-node-val">Tray Confirm Button (LD)</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">LOAD</span>
+  </div>
+
+  <div class="synx-canvas-node is-counter">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M5.5,3 L5.5,13 M10.5,3 L10.5,13 M2,6.5 L14,6.5 M2,10 L14,10" /></svg>
+        <span>CTD RELOAD</span>
+      </div>
+      <span class="synx-node-status is-active">● 50 / 50</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● LD</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Preset COUNTER1 = 50</span>
+        <span class="synx-node-alias">Reload 50 Blanks</span>
+        <span class="synx-node-val">Q Resets To 0</span>
+      </div>
+      <div class="synx-node-pin is-out">Q ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">CLEAR</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-pass">● SET 0</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DO1 = 0</span>
+        <span class="synx-node-alias">Clear Refill Beacon</span>
+        <span class="synx-node-val">Resume Auto Machine Cycle</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 **Configuration Steps:**
 1. Define `DI0_FeederStroke`, `DI2_TrayReloaded`, `CNT_RemainingBlanks` (`COUNTER1`, initial value `50`), and `DO1_TrayEmptyLamp` in [Tag Catalog](/workspaces/tag-catalog-tab).

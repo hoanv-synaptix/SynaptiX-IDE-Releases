@@ -41,22 +41,9 @@ Khối **`TP`** (**Timer Pulse — Phát Xung Đơn ổn**) là bộ tạo xung 
 
 ---
 
-## 4. Máy Trạng thái / Giản đồ Thời gian
+## 4. Quy tắc Phát Xung Đơn ổn & Cơ chế Bảo vệ
 
-Sơ đồ trạng thái dưới đây làm rõ tính miễn nhiễm hoàn toàn với nhiễu dội giữa xung (`PulseActive` phớt lờ biến động của `In`) và trạng thái khóa chờ nhả (`WaitRelease`) khi cảm biến bị kẹt ở mức `1` quá thời gian `PresetMs`:
-
-```mermaid
-stateDiagram-v2
-    [*] --> ArmedIdle : "In == 0"
-    ArmedIdle : "SẴN SÀNG CHỜ XUNG (Q = 0, ET = 0 ms)"
-    PulseActive : "ĐANG PHÁT XUNG (Q = 1, 0 < ET < PresetMs · Bỏ qua In)"
-    WaitRelease : "KHÓA CHỜ NHẢ IN (Q = 0, ET = PresetMs · In vẫn bằng 1)"
-
-    ArmedIdle --> PulseActive : "In: 0 -> 1 (Đóng Q = 1, Bắt đầu đếm ET)"
-    PulseActive --> ArmedIdle : "ET >= PresetMs VÀ In == 0 (Hạ Q = 0, Xóa ET = 0)"
-    PulseActive --> WaitRelease : "ET >= PresetMs VÀ In == 1 (Cắt Q = 0, Giữ khóa an toàn)"
-    WaitRelease --> ArmedIdle : "In: 1 -> 0 (Nạp lại sẵn sàng cho xung kế tiếp)"
-```
+Bảng dưới đây làm rõ tính miễn nhiễm hoàn toàn với nhiễu dội giữa xung (khối `TP` phớt lờ mọi biến động của `In` trong lúc đang phát xung) và trạng thái khóa bảo vệ an toàn khi cảm biến bị kẹt ở mức `1` quá thời gian `PresetMs`:
 
 | Tình huống Hiện trường | Diễn biến Chân `In` | Độ rộng Ngõ ra `Q` | Cơ chế Bảo vệ Công nghiệp |
 | :--- | :--- | :--- | :--- |
@@ -102,16 +89,119 @@ Khi chai đi ngang cảm biến quang phản xạ gương (`DI0`) trên băng t�
 3. Nối tiếp `TP.Q` → **[`ACTION`](/vi/blocks/action)** (`ActionType = INC_COUNTER`, `TargetTag = VREG_R1`, `ActionParam = 1`) để cộng sản lượng mỗi lần bơm thành công.
 4. Nhấn `F5` kiểm thử: bật `DI1 = 1`, gạt `DI0` lên `1` và **giữ nguyên `DI0 = 1`** (giả lập kẹt chai trước cảm biến). Xác nhận van `DO2` chỉ mở đúng `750 ms` rồi ngắt hẳn về `0`, không bao giờ phun lặp cho tới khi `DI0` hạ về `0` và đón chai mới.
 
-```mermaid
-flowchart LR
-    IN_EYE["INPUT: DI0<br/>(Cảm biến Quang Báo Chai)"]
-    TRG_EDGE["TRIGGER: ON_RISE<br/>(ForMs = 15 ms)"]
-    GRD_CONV["GUARD: DI1<br/>(Băng tải Chạy == 1)"]
-    TP_DOSE["TP Timer<br/>(Preset = 750 ms · OutputTag = DO2)"]
-    ACT_TOT["ACTION: INC_COUNTER<br/>(VREG_R1 += 1)"]
+<div class="synx-node-chain">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● LIVE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DI0 • BOOL</span>
+        <span class="synx-node-alias">Cảm Biến Quang</span>
+        <span class="synx-node-val">Phát Hiện Chai</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
 
-    IN_EYE -- "Out -> In" --> TRG_EDGE
-    TRG_EDGE -- "Out -> In" --> GRD_CONV
-    GRD_CONV -- "Out -> In" --> TP_DOSE
-    TP_DOSE -- "Q -> In" --> ACT_TOT
-```
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">EDGE</span>
+  </div>
+
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M10,1 L5,8.5 L8.5,8.5 L6,15 L11,7.5 L7.5,7.5 Z" /></svg>
+        <span>TRIGGER</span>
+      </div>
+      <span class="synx-node-status is-rise">● ON_RISE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">15 ms Dwell</span>
+        <span class="synx-node-alias">Lọc Chống Nhiễu</span>
+        <span class="synx-node-val">Bắt Sườn Chai Vào</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">TRUE</span>
+  </div>
+
+  <div class="synx-canvas-node is-guard">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 L13.5,4 L13.5,9.5 Q13.5,13.5 8,15 Q2.5,13.5 2.5,9.5 L2.5,4 Z" /></svg>
+        <span>GUARD</span>
+      </div>
+      <span class="synx-node-status is-pass">● PASS</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DI1 == 1</span>
+        <span class="synx-node-alias">Khóa Băng Tải</span>
+        <span class="synx-node-val">Băng Tải Đang Chạy</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">ENABLE</span>
+  </div>
+
+  <div class="synx-canvas-node is-timer">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 A6.5,6.5 0 1 1 1.5,8 M8,1.5 L8,8 L11,10" /></svg>
+        <span>TP TIMER</span>
+      </div>
+      <span class="synx-node-status is-active">● 750 ms</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">PT = 750 ms • DO2</span>
+        <span class="synx-node-alias">Xung Định Lượng</span>
+        <span class="synx-node-val">Phun Phụ Gia 750ms</span>
+      </div>
+      <div class="synx-node-pin is-out">Q ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">DONE</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● +1</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">INC VREG_R1</span>
+        <span class="synx-node-alias">Đếm Sản Lượng</span>
+        <span class="synx-node-val">Cộng 1 Chai Hoàn Tất</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>

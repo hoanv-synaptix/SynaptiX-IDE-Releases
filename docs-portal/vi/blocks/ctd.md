@@ -51,18 +51,9 @@ Khi chọn khối `CTD` trên [Sơ đồ Logic — Logic Graph](/vi/workspaces/l
 
 ---
 
-## 4. Máy Trạng thái & Biểu đồ Thời gian
+## 4. Minh họa Chu trình Đếm Lùi theo Chu kỳ Quét (`PV = 3`)
 
-```mermaid
-stateDiagram-v2
-    [*] --> Depleted : "Chưa nạp CV = 0 (Q = 1)"
-    Depleted --> Armed : "R = 1 [CV ← PV, Q ← 0]"
-    Armed --> Armed : "CD ↑ và (CV - 1) > 0 [CV ← CV - 1, Q = 0]"
-    Armed --> Depleted : "CD ↑ và (CV - 1) ≤ 0 [CV ← 0, Q = 1]"
-    Armed --> Armed : "R = 1 [CV ← PV, Q = 0]"
-```
-
-### Minh họa Chu trình Đếm Lùi theo Chu kỳ Quét (`PV = 3`)
+Bảng dưới đây minh họa chu trình đếm lùi thực tế khi nạp khay 3 phôi và ngắt báo hết khay khi `CV ≤ 0`:
 
 | Sự kiện Chu kỳ Quét | Chân `CD` | Chân `R` | Số lượng Còn lại `CV` | Ngõ ra `Q` (`CV ≤ 0`) | Nhãn Trạng thái trên Canvas |
 | :--- | :---: | :---: | :---: | :---: | :--- |
@@ -89,13 +80,143 @@ stateDiagram-v2
 
 **Bài toán:** Mỗi khay nhôm chứa `50` phôi gia công. Khi người vận hành thay khay mới và nhấn nút xác nhận `DI2_TrayReloaded`, bộ đếm nạp `50`. Mỗi hành trình xi-lanh đẩy phôi (`DI0_FeederStroke`) giảm số lượng còn lại đi `1`. Khi hết sạch phôi (`CV = 0 → Q = 1`), bật đèn tháp cảnh báo vàng (`DO1_TrayEmptyLamp`) và khóa chu trình tự động qua khối [`GUARD`](/vi/blocks/guard).
 
-```mermaid
-flowchart LR
-    DI0["INPUT: DI0_FeederStroke"] -- "CD (0 → 1)" --> CTD1["CTD Counter<br/>PV = 50 | CV = COUNTER1"]
-    DI2["INPUT: DI2_TrayReloaded"] -- "R (Nạp 50)" --> CTD1
-    CTD1 -- "Q (CV ≤ 0)" --> LAMP["DIRECT_WRITE: DO1_TrayEmptyLamp"]
-    CTD1 -- "Q (Cấm chạy)" --> GRD["GUARD: Khóa Chu trình Tự động"]
-```
+<div class="synx-node-chain" style="margin-bottom: 12px;">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● LIVE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DI0 • BOOL</span>
+        <span class="synx-node-alias">Hành Trình Feeder</span>
+        <span class="synx-node-val">Xung Đẩy Phôi (CD)</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">DEC</span>
+  </div>
+
+  <div class="synx-canvas-node is-counter">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M5.5,3 L5.5,13 M10.5,3 L10.5,13 M2,6.5 L14,6.5 M2,10 L14,10" /></svg>
+        <span>CTD COUNTER</span>
+      </div>
+      <span class="synx-node-status is-active">● 0 / 50</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● CD</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">PV = 50 • CV COUNTER1</span>
+        <span class="synx-node-alias">Đếm Lùi Phôi Còn Lại</span>
+        <span class="synx-node-val">Q = 1 khi CV == 0</span>
+      </div>
+      <div class="synx-node-pin is-out">Q ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">EMPTY</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● SET 1</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DO1 = 1</span>
+        <span class="synx-node-alias">Đèn Báo Hết Phôi</span>
+        <span class="synx-node-val">Bật Đèn Vàng Khay Rỗng</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
+
+<div class="synx-node-chain" style="margin-top: 12px;">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● LIVE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DI2 • BOOL</span>
+        <span class="synx-node-alias">Nút Nạp Khay Mới</span>
+        <span class="synx-node-val">Xác Nhận Nạp Phôi (LD)</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">LOAD</span>
+  </div>
+
+  <div class="synx-canvas-node is-counter">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M5.5,3 L5.5,13 M10.5,3 L10.5,13 M2,6.5 L14,6.5 M2,10 L14,10" /></svg>
+        <span>CTD RELOAD</span>
+      </div>
+      <span class="synx-node-status is-active">● 50 / 50</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● LD</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Đặt Lại COUNTER1 = 50</span>
+        <span class="synx-node-alias">Nạp Đầy 50 Phôi</span>
+        <span class="synx-node-val">Q Chuyển Về 0</span>
+      </div>
+      <div class="synx-node-pin is-out">Q ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">CLEAR</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-pass">● SET 0</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DO1 = 0</span>
+        <span class="synx-node-alias">Tắt Đèn Báo Hết Phôi</span>
+        <span class="synx-node-val">Cho Phép Máy Chạy Tiếp</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 **Các bước cấu hình:**
 1. Khai báo `DI0_FeederStroke`, `DI2_TrayReloaded`, `CNT_RemainingBlanks` (`COUNTER1`, giá trị đầu `50`) và `DO1_TrayEmptyLamp` trong [Danh mục Biến — Tag Catalog](/vi/workspaces/tag-catalog-tab).

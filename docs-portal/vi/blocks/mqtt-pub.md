@@ -73,18 +73,12 @@ Khối `MQTT_PUB` tự động đồng bộ các chân ngõ vào bên trái (`Sy
 
 ---
 
-## 4. Lưu đồ Kích hoạt & Đóng gói Bản tin
+## 4. Chế độ Phát Tin & Đóng gói Tải trọng
 
-```mermaid
-flowchart LR
-    SRC["Biến Tag / Dây nối Ngõ vào"] --> GATE{"Cổng Lọc PublishMode"}
-    GATE -- "Event: Sườn lên Trig 0 → 1" --> FMT["Bộ Đóng gói Tải trọng<br/>(JSON Builder | Raw | Custom <= 128B)"]
-    GATE -- "COV: |ΔVal| ≥ Deadband" --> FMT
-    GATE -- "Cyclic: Mỗi IntervalMs" --> FMT
-    FMT --> TX["Hàng đợi Phát MQTT Bất đồng bộ<br/>(QoS 0/1/2, Retain)"]
-    TX -- "Broker Xác nhận" --> DONE["Done = 1 (Xung) + Tăng bộ đếm tin"]
-    TX -- "Đứt mạng / Quá hạn" --> ERR["Err = 1 + Thông báo lỗi"]
-```
+Khối `MQTT_PUB` chuyển dữ liệu cảm biến thành bản tin mạng theo 3 phương thức linh hoạt:
+- **Chế độ Kích hoạt (`PublishMode`):** Phát tin theo sườn lên chân `Trig`, phát định kỳ theo chu kỳ `IntervalMs`, hoặc chỉ phát khi dữ liệu biến thiên vượt ngưỡng (`Δ ≥ Deadband`).
+- **Đóng gói linh hoạt:** Hỗ trợ tạo tự động gói JSON chuẩn (`Visual Field Builder`), chuỗi số thô (`Raw`) hoặc mẫu tùy biến theo chuẩn MES/ERP (`Custom <= 128 ký tự`).
+- **Hàng đợi ngầm không chặn:** Gói tin được đưa vào hàng đợi mạng bất đồng bộ, hoàn toàn không làm gián đoạn chu kỳ quét điều khiển thời gian thực.
 
 ---
 

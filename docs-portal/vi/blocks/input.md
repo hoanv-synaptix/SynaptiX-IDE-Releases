@@ -51,31 +51,11 @@ Khi nhấp chọn khối `INPUT` trên Canvas, bảng thuộc tính **Inspector*
 
 ---
 
-## 4. Máy Trạng thái / Giản đồ Thời gian
+## 4. Tương tác Kích thích trong Chế độ Mô phỏng (`F5`)
 
-Do `INPUT` là nguồn đọc trực tiếp không độ trễ trong Runtime và đồng thời là bộ phát tín hiệu kích thích trong **Chế độ Mô phỏng** (`F5`), hành vi chuyển trạng thái tương tác trên khối tuân theo hai quy trình tách biệt dành cho **Tag Số (`BOOL`)** và **Tag Tương tự / Thanh ghi (`INT32` / `REAL`)**:
-
-```mermaid
-stateDiagram-v2
-    [*] --> DigitalZero : "Gắn Tag Số (DI / DO / VFLAG)"
-    DigitalZero : "Trạng thái BOOL = 0 (Nhãn: 0 / ○ 0)"
-    DigitalOne : "Trạng thái BOOL = 1 (Nhãn: 1 / ● 1)"
-    DigitalZero --> DigitalOne : "Nhấn ToggleSimInput hoặc [ 1 ]"
-    DigitalOne --> DigitalZero : "Nhấn ToggleSimInput hoặc [ 0 ]"
-
-    [*] --> Analog0 : "Gắn Tag Tương tự / Thanh ghi (AI / VREG)"
-    Analog0 : "Giá trị = 0 (Nghỉ)"
-    Analog50 : "Giá trị = 50 (Kích hoạt > 0)"
-    Analog90 : "Giá trị = 90 (Kích hoạt > 0)"
-    Analog100 : "Giá trị = 100 (Kích hoạt > 0)"
-    Analog0 --> Analog50 : "Nhấn Chuyển nhanh (val < 50 -> 50)"
-    Analog50 --> Analog90 : "Nhấn Chuyển nhanh (val < 90 -> 90)"
-    Analog90 --> Analog100 : "Nhấn Chuyển nhanh (val < 100 -> 100)"
-    Analog100 --> Analog0 : "Nhấn Chuyển nhanh (val >= 100 -> 0)"
-```
-
-- **Đảo Nhanh Nhị phân (`BOOL`):** Nhấp trực tiếp nút mô phỏng trên thân khối sẽ đảo tức thì giá trị `Tag.Value` giữa `0` (`○ 0`) và `1` (`● 1`).
-- **Chu trình Bơm Thử 4 Mức (`AI` / `VREG`):** Nhấp nút chuyển nhanh trên khối tương tự hoặc thanh ghi sẽ xoay vòng qua 4 mốc kiểm chuẩn `0 → 50 → 90 → 100 → 0`, đồng thời kỹ sư có thể nhập chính xác bất kỳ con số vật lý nào vào ô `TagValueText` trên Inspector.
+Trong quá trình chạy mô phỏng ngoại tuyến (`F5`), khối `INPUT` cho phép kỹ sư thử nghiệm tín hiệu trực tiếp:
+- **Đảo Nhanh Nhị phân (`BOOL`):** Nhấp trực tiếp nút chuyển trên thân khối để đảo giá trị giữa `0` (`○ 0`) và `1` (`● 1`).
+- **Chu trình Bơm Thử 4 Mức (`AI` / `VREG`):** Nhấp nút kiểm tra nhanh trên khối để xoay vòng qua 4 mốc thử chuẩn `0 → 50 → 90 → 100 → 0`, hoặc nhập con số bất kỳ vào ô `TagValueText` trên Inspector.
 
 ---
 
@@ -121,22 +101,188 @@ Một cảm biến áp suất đường ống đẩy `4–20 mA` đấu vào kê
 3. Kéo nhánh dây thứ hai (rẽ nhánh `1:N` từ cùng chân `INPUT.Out`) sang khối **[`COMPARATOR`](/vi/blocks/comparator)** thứ hai (`CompareOp = GTE`, `ThresholdLo = 9500`) → **[`TRIGGER`](/vi/blocks/trigger)** (`TriggerType = ON_RISE`, `ForMs = 100`) → **[`ACTION`](/vi/blocks/action)** (`ActionType = SET_TAG`, `TargetTag = DO0`, `ActionParam = 0`).
 4. Nhấn `F5` bật **Simulator**, chọn khối `INPUT` `AI0`, nhập `"8200"` vào ô `TagValueText` rồi nhấn `Enter`: quan sát cờ `VFLAG0` bật lên `1` sau `500 ms` trong khi `DO0` vẫn giữ mức `1`. Tiếp tục nhập `"9600"`, xác nhận `DO0` ngắt tức thì về `0` sau đúng `100 ms`.
 
-```mermaid
-flowchart LR
-    SRC["INPUT: AI0<br/>(Áp suất Đường đẩy)"]
-    CMP_WARN["COMPARATOR<br/>(AI0 >= 8000)"]
-    TRG_WARN["TRIGGER: ON_RISE<br/>(ForMs = 500 ms)"]
-    ACT_WARN["ACTION: SET_TAG<br/>(VFLAG0 = 1)"]
+<div class="synx-node-chain" style="margin-bottom: 12px;">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● LIVE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">AI0 • INT16</span>
+        <span class="synx-node-alias">Áp Suất Đường Đẩy</span>
+        <span class="synx-node-val">Cảm Biến Áp Lực</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
 
-    CMP_TRIP["COMPARATOR<br/>(AI0 >= 9500)"]
-    TRG_TRIP["TRIGGER: ON_RISE<br/>(ForMs = 100 ms)"]
-    ACT_TRIP["ACTION: SET_TAG<br/>(DO0 = 0)"]
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">8200</span>
+  </div>
 
-    SRC -- "Out -> In" --> CMP_WARN
-    CMP_WARN -- "Out -> In" --> TRG_WARN
-    TRG_WARN -- "Out -> In" --> ACT_WARN
+  <div class="synx-canvas-node is-comparator">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M3.5,6 L8,9 L3.5,12 M9.5,7 L13,7 M9.5,10.5 L13,10.5" /></svg>
+        <span>COMPARATOR</span>
+      </div>
+      <span class="synx-node-status is-true">● GTE 8000</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">&gt;= 8000</span>
+        <span class="synx-node-alias">Cảnh Báo Sớm</span>
+        <span class="synx-node-val">Chạm Mức Báo Động</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
 
-    SRC -- "Out -> In (Rẽ nhánh)" --> CMP_TRIP
-    CMP_TRIP -- "Out -> In" --> TRG_TRIP
-    TRG_TRIP -- "Out -> In" --> ACT_TRIP
-```
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">TRUE</span>
+  </div>
+
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M10,1 L5,8.5 L8.5,8.5 L6,15 L11,7.5 L7.5,7.5 Z" /></svg>
+        <span>TRIGGER</span>
+      </div>
+      <span class="synx-node-status is-rise">● 500 ms</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">500 ms Filter</span>
+        <span class="synx-node-alias">Lọc Chống Nhiễu Áp</span>
+        <span class="synx-node-val">Xác Nhận Quá Áp Sớm</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">ENABLE</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● SET 1</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">VFLAG0 = 1</span>
+        <span class="synx-node-alias">Cờ Báo Động VFLAG0</span>
+        <span class="synx-node-val">Bật Đèn Cảnh Báo Vàng</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
+
+<div class="synx-node-chain" style="margin-top: 12px;">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● LIVE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">AI0 • INT16</span>
+        <span class="synx-node-alias">Áp Suất Đường Đẩy</span>
+        <span class="synx-node-val">Cảm Biến Áp Lực</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">9600</span>
+  </div>
+
+  <div class="synx-canvas-node is-comparator">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M3.5,6 L8,9 L3.5,12 M9.5,7 L13,7 M9.5,10.5 L13,10.5" /></svg>
+        <span>COMPARATOR</span>
+      </div>
+      <span class="synx-node-status is-true">● GTE 9500</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">&gt;= 9500</span>
+        <span class="synx-node-alias">Quá Áp Nguy Hiểm</span>
+        <span class="synx-node-val">Ngưỡng Trip Khẩn Cấp</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">TRIP</span>
+  </div>
+
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M10,1 L5,8.5 L8.5,8.5 L6,15 L11,7.5 L7.5,7.5 Z" /></svg>
+        <span>TRIGGER</span>
+      </div>
+      <span class="synx-node-status is-rise">● 100 ms</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">100 ms Filter</span>
+        <span class="synx-node-alias">Cắt Nhanh Khẩn Cấp</span>
+        <span class="synx-node-val">Bảo Vệ Vỡ Đường Ống</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">CUTOUT</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-pass">● SET 0</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DO0 = 0</span>
+        <span class="synx-node-alias">Ngắt Khẩn Bơm DO0</span>
+        <span class="synx-node-val">Dừng Bơm Ngay Lập Tức</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>

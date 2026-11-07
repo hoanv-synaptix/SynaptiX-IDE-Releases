@@ -89,7 +89,7 @@ const pageTitle = computed(() => {
           <svg viewBox="0 0 24 24" width="13" height="13" class="synx-breadcrumb-icon">
             <path fill="currentColor" d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
           </svg>
-          <span>{{ isVi ? 'Trang Chủ Wiki' : 'Wiki Home' }}</span>
+          <span>{{ isVi ? 'Trang Chủ' : 'Guide Home' }}</span>
         </a>
       </li>
 
@@ -116,19 +116,6 @@ const pageTitle = computed(() => {
         <span class="synx-breadcrumb-current">{{ pageTitle }}</span>
       </li>
     </ol>
-
-    <div class="synx-breadcrumb-actions">
-      <a 
-        href="https://github.com/hoanv-synaptix/SynaptiX-IDE-Releases/releases/tag/v2.11.4" 
-        target="_blank" 
-        rel="noopener noreferrer"
-        class="synx-source-pill"
-        title="Official SynaptiX IDE Release"
-      >
-        <span class="synx-pulse-indicator"></span>
-        <span>v2.11.4</span>
-      </a>
-    </div>
   </nav>
 </template>
 
@@ -136,7 +123,7 @@ const pageTitle = computed(() => {
 .synx-breadcrumb-nav {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   padding: 8px 0 16px 0;
   margin-bottom: 8px;
   border-bottom: 1px solid var(--vp-c-divider);

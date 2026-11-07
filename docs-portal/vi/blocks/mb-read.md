@@ -74,27 +74,12 @@ Nếu nhập `Multiplier` là số thập phân (như `0.1` hoặc `0.01`) nhưn
 
 ---
 
-## 4. Biểu đồ Tuần tự Quét Bất đồng bộ
+## 4. Cơ chế Đọc Ngầm Không Nghẽn (Non-Blocking Polling)
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant Scan as "Vòng Quét Tất định (10 ms)"
-    participant Worker as "Tiến trình Modbus Master Ngầm"
-    participant Bus as "Bộ Thu phát RS-485 (Cổng #1/#2)"
-    participant Slave as "Cảm biến Ngoại vi RS-485 (ID 1..247)"
-
-    Note over Worker: Đến chu kỳ PollIntervalMs (hoặc sườn lên Trig 0 → 1)
-    Worker->>Bus: Kích chân DE/RE & phát Khung Yêu cầu 8-byte + CRC-16
-    Bus->>Slave: Bản tin Yêu cầu Modbus RTU (FC 01/02/03/04)
-    Worker->>Worker: Khởi chạy bộ canh thời gian TimeoutMs (300 ms)
-    Slave-->>Bus: Bản tin Phản hồi Modbus RTU + CRC-16
-    Bus-->>Worker: Thu trọn khung qua UART DMA
-    Worker->>Worker: Đối soát CRC-16, đảo Word (ABCD/CDAB) & nhân Multiplier
-    Worker->>Scan: Chốt nguyên tử vào TargetTags + bật Valid = 1 (xung 1 chu kỳ)
-    Scan->>Scan: Thực thi các khối so sánh & telemetry phía sau
-    Scan->>Worker: Tự động hạ Valid = 0 ở chu kỳ quét kế tiếp
-```
+Khối `MB_READ` chạy trên tiến trình truyền thông ngầm, **hoàn toàn không làm chậm vòng quét điều khiển**:
+- **Chế độ Định kỳ (`Cyclic`):** Tự động phát lệnh đọc theo chu kỳ `PollIntervalMs` (mặc định `500 ms`).
+- **Chế độ Kích hoạt (`OnTriggerRisingEdge`):** Chỉ phát lệnh đọc khi có sườn lên ở chân `Trig`.
+- **Cập nhật nguyên tử:** Khi nhận đủ khung tin và kiểm tra đúng CRC, dữ liệu được giải mã và cập nhật tức thì vào các chân ngõ ra kèm theo xung báo `Valid = 1` trong 1 chu kỳ quét.
 
 ---
 
@@ -120,14 +105,143 @@ sequenceDiagram
 
 **Bài toán:** Quét điện áp pha trung bình và tổng công suất tác dụng mỗi `1000 ms` qua cổng `RS-485 #1` từ đồng hồ đo điện năng (`SlaveId = 2`), kích hoạt cảnh báo thấp áp khi điện áp tụt dưới `195.0 V`, đồng thời đẩy dữ liệu tiêu thụ điện lên máy chủ MQTT.
 
-```mermaid
-flowchart LR
-    MBR["MB_READ: Meter_PM2200<br/>Port #1 | ID: 2 | FC 03 | Cyclic 1000 ms"]
-    MBR -- "Voltage_V (REAL)" --> CMP["COMPARATOR: LT (&lt; 195.0 V)"]
-    MBR -- "Power_kW (REAL)" --> PUB["MQTT_PUB: synaptix/substation/power"]
-    MBR -- "Error" --> ALM["DIRECT_WRITE: DO2_CommFaultLamp"]
-    CMP -- "Out" --> UV["ACTION: Set VBIT_UnderVoltage"]
-```
+<div class="synx-node-chain" style="margin-bottom: 12px;">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,5 L14,5 M14,5 L10,2 M14,5 L10,8 M14,11 L2,11 M2,11 L6,8 M2,11 L6,14" /></svg>
+        <span>MB_READ</span>
+      </div>
+      <span class="synx-node-status is-live">● RS485 #1</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Slave 2 • FC 03</span>
+        <span class="synx-node-alias">Đồng Hồ PM2200</span>
+        <span class="synx-node-val">Quét Chu Kỳ 1000ms</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">192.4 V</span>
+  </div>
+
+  <div class="synx-canvas-node is-comparator">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M3.5,6 L8,9 L3.5,12 M9.5,7 L13,7 M9.5,10.5 L13,10.5" /></svg>
+        <span>COMPARATOR</span>
+      </div>
+      <span class="synx-node-status is-true">● LT 195.0V</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">&lt; 195.0 V</span>
+        <span class="synx-node-alias">Giám Sát Thấp Áp</span>
+        <span class="synx-node-val">Điện Áp Pha Sụt Giảm</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">TRUE</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● SET 1</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">VFLAG0 = 1</span>
+        <span class="synx-node-alias">Cờ Báo Động Thấp Áp</span>
+        <span class="synx-node-val">Khóa Phụ Tải Động Lực</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
+
+<div class="synx-node-chain" style="margin-top: 12px;">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,5 L14,5 M14,5 L10,2 M14,5 L10,8 M14,11 L2,11 M2,11 L6,8 M2,11 L6,14" /></svg>
+        <span>MB_READ</span>
+      </div>
+      <span class="synx-node-status is-live">● OFFSET 2</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">VREG_ActiveKw</span>
+        <span class="synx-node-alias">Tổng Công Suất P</span>
+        <span class="synx-node-val">Float32 MidBig CDAB</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">42.8 kW</span>
+  </div>
+
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,14 L8,8 M5,10 A4,4 0 0 1 11,10 M3,7.5 A7,7 0 0 1 13,7.5 M1.5,5 A9.5,9.5 0 0 1 14.5,5" /></svg>
+        <span>MQTT_PUB</span>
+      </div>
+      <span class="synx-node-status is-active">● TELEMETRY</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">synaptix/power</span>
+        <span class="synx-node-alias">Đẩy Lên Cloud SCADA</span>
+        <span class="synx-node-val">Chu Kỳ Giám Sát</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">BUS_OK</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-pass">● CLEAR</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DO2 = 0</span>
+        <span class="synx-node-alias">Đèn Bus RS-485 OK</span>
+        <span class="synx-node-val">Không Báo Lỗi Truyền Thông</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 **Các bước cấu hình:**
 1. Thiết lập cổng `RS-485 #1` ở tốc độ `9600 bps, 8E1, Master` trong màn hình [Cấu hình RS-485 & Bản đồ SCADA Slave](/vi/tools/rs485-and-scada-slave).

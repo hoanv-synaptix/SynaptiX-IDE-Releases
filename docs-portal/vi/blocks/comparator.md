@@ -50,34 +50,12 @@ Khối **`COMPARATOR`** (`CMP`) là hàm toán tử so sánh khóa chặt theo k
 
 ---
 
-## 4. Máy Trạng thái / Giản đồ Thời gian
+## 4. Quy tắc So sánh & Nhận diện Trạng thái Trực tuyến
 
-Lưu đồ dưới đây trình bày luồng phân nhánh đánh giá theo kiểu dữ liệu vật lý bên trong khối `COMPARATOR` ở từng chu kỳ quét cũng như khi giám sát trực tuyến 20 FPS:
-
-```mermaid
-flowchart LR
-    RAW["Đọc Giá trị InputTag Đầu vào<br/>(32-bit Process Image RawValue)"]
-    TYPE{"Kiểm tra Kiểu<br/>Dữ liệu Gốc"}
-
-    REAL_PATH["Giải mã IEEE-754 Float32<br/>EQ/NEQ: |val - Lo| <= 1e-5<br/>GT/LT/GTE/LTE/BETWEEN"]
-    BOOL_PATH["Chuẩn hóa Đích về 0 hoặc 1<br/>Đánh giá EQ (==) hoặc NEQ (!=)"]
-    INT_PATH["Số nguyên Có dấu 32-bit<br/>So sánh Nguyên Chính xác<br/>Đoạn [Lo..Hi] Tính cả Biên"]
-
-    TRUE_OUT["Out = 1<br/>(Nhãn: ✓ TRUE · Xanh Kích hoạt)"]
-    FALSE_OUT["Out = 0<br/>(Nhãn: FALSE · Xám Trung tính)"]
-
-    RAW --> TYPE
-    TYPE -- "REAL (Float32)" --> REAL_PATH
-    TYPE -- "BOOL (Số)" --> BOOL_PATH
-    TYPE -- "INT32 (Nguyên)" --> INT_PATH
-
-    REAL_PATH -- "Thỏa mãn" --> TRUE_OUT
-    REAL_PATH -- "Không thỏa" --> FALSE_OUT
-    BOOL_PATH -- "Thỏa mãn" --> TRUE_OUT
-    BOOL_PATH -- "Không thỏa" --> FALSE_OUT
-    INT_PATH -- "Thỏa mãn" --> TRUE_OUT
-    INT_PATH -- "Không thỏa" --> FALSE_OUT
-```
+Ở mỗi chu kỳ quét máy:
+- **Nếu điều kiện thỏa mãn:** Ngõ ra `Out` bật lên mức `1` (`TRUE`), phát sáng màu xanh kích hoạt trên màn hình giám sát trực tuyến (`F8`).
+- **Nếu điều kiện không thỏa mãn:** Ngõ ra `Out` giữ mức `0` (`FALSE`) với màu xám trung tính.
+- **Tương thích kiểu dữ liệu:** Khối tự động so sánh chính xác theo kiểu vật lý của biến nguồn: số nguyên (`INT32`), số thực (`REAL` với sai số chuẩn IEEE-754) hoặc biến logic (`BOOL`).
 
 ---
 
@@ -121,16 +99,119 @@ Tại bồn trung hòa nước thải trạm rửa CIP nhà máy thực phẩm, 
 4. Nối tiếp `COMPARATOR.Out` → **[`TRIGGER`](/vi/blocks/trigger)** (`TriggerType = ON_RISE`, `ForMs = 3000`) → **[`ACTION`](/vi/blocks/action)** (`ActionType = SET_TAG`, `TargetTag = DO4`, `ActionParam = 1`).
 5. Nhấn `F5` chạy mô phỏng: bơm giá trị tương ứng `pH = 7.2` (`AI1 = 12228`), quan sát khối `COMPARATOR` bật `✓ TRUE`, chờ bộ lọc `TRIGGER` đếm đủ `3000 ms` và xác nhận van `DO4` đóng lên mức `1`.
 
-```mermaid
-flowchart LR
-    IN_RAW["INPUT: AI1<br/>(Dòng thô 4-20 mA)"]
-    SCL_PH["SCALE -> VREG2<br/>(0.0 .. 14.0 pH · REAL)"]
-    CMP_BAND["COMPARATOR: BETWEEN<br/>(6.5 <= VREG2 <= 8.5)"]
-    TRG_DWELL["TRIGGER: ON_RISE<br/>(ForMs = 3000 ms)"]
-    ACT_VALVE["ACTION: SET_TAG<br/>(DO4 = 1)"]
+<div class="synx-node-chain">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● 4..20mA</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">AI1 • INT32</span>
+        <span class="synx-node-alias">Cảm Biến pH</span>
+        <span class="synx-node-val">4000 .. 20000 Thô</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
 
-    IN_RAW -- "Out -> In" --> SCL_PH
-    SCL_PH -- "Out -> In" --> CMP_BAND
-    CMP_BAND -- "Out -> In (BOOL)" --> TRG_DWELL
-    TRG_DWELL -- "Out -> In (Event)" --> ACT_VALVE
-```
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">12228</span>
+  </div>
+
+  <div class="synx-canvas-node is-timer">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,13 L5,13 L5,9.5 L8,9.5 L8,6 L11,6 L11,3 L14,3" /></svg>
+        <span>SCALE</span>
+      </div>
+      <span class="synx-node-status is-active">● 7.2 pH</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">VREG2 • REAL</span>
+        <span class="synx-node-alias">Quy Đổi Tuyến Tính</span>
+        <span class="synx-node-val">0.0 .. 14.0 pH</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">7.2 pH</span>
+  </div>
+
+  <div class="synx-canvas-node is-comparator">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M3.5,6 L8,9 L3.5,12 M9.5,7 L13,7 M9.5,10.5 L13,10.5" /></svg>
+        <span>COMPARATOR</span>
+      </div>
+      <span class="synx-node-status is-true">● BETWEEN</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">6.5 .. 8.5 pH</span>
+        <span class="synx-node-alias">Kiểm Tra Dải Chuẩn</span>
+        <span class="synx-node-val">pH Đạt Tiêu Chuẩn</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">TRUE</span>
+  </div>
+
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M10,1 L5,8.5 L8.5,8.5 L6,15 L11,7.5 L7.5,7.5 Z" /></svg>
+        <span>TRIGGER</span>
+      </div>
+      <span class="synx-node-status is-active">● 3000 ms</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">3000 ms Filter</span>
+        <span class="synx-node-alias">Lọc Ổn Định pH</span>
+        <span class="synx-node-val">Duy Trì Đủ 3 Giây</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">ENABLE</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● SET 1</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DO4 = 1</span>
+        <span class="synx-node-alias">Mở Van Xả</span>
+        <span class="synx-node-val">Xả Nước Đạt Tiêu Chuẩn</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>

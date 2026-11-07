@@ -50,28 +50,13 @@ Click **`[ Configure HTTP Client... ]`** (or double-click the node) to open the 
 
 ---
 
-## 4. Non-Blocking HTTP Request Lifecycle
+## 4. Asynchronous HTTP Rules & Response Handshaking
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant Logic as "FBD Scan Loop"
-    participant Http as "Async HTTP Worker"
-    participant Api as "Remote REST Webhook Server"
-
-    Logic->>Http: Trig (0 → 1) or Cyclic Timer Tick
-    Http->>Logic: Busy = 1
-    Http->>Api: TCP Connect + HTTP POST/PUT (Url <= 64c, Headers <= 56c, Body)
-    alt HTTP 200..299 Received within TimeoutSec
-        Api-->>Http: HTTP/1.1 200 OK
-        Http->>Logic: Busy = 0, Status = 200, Done = 1 (1-Scan Pulse), Err = 0
-    else HTTP 4xx / 5xx Response
-        Api-->>Http: HTTP/1.1 401 Unauthorized / 500 Error
-        Http->>Logic: Busy = 0, Status = 401/500, Err = 1, Done = 0
-    else Network Timeout (TimeoutSec Elapsed)
-        Http->>Logic: Busy = 0, Status = 0, Err = 1
-    end
-```
+The `HTTP_CLIENT` block dispatches outbound REST webhook requests in an asynchronous background worker:
+- **Triggering:** Dispatched on rising edges of pin `Trig` or periodically via `CyclicIntervalSec`.
+- **Busy Guard (`Busy = 1`):** Asserts `Busy = 1` throughout TCP connection setup and transmission.
+- **Success Handshake (`Done = 1`):** When the remote endpoint replies with `HTTP 200..299`, pin `Done` pulses `1` for one scan cycle and updates `Status` (e.g. `200`).
+- **Network Fault Handling (`Err = 1`):** If an HTTP `4xx / 5xx` error occurs or the connection times out (`TimeoutSec`), `Err` asserts and `Status` reflects the HTTP error code.
 
 ---
 
@@ -91,12 +76,98 @@ sequenceDiagram
 
 **Objective:** Every time a [`CTU`](/blocks/ctu) counter completes a `50`-part pallet (`Q` rising edge), send an HTTP `POST` JSON report containing part count (`CNT_PalletParts`) and line temperature (`VREG0_LineTemp`) to the plant MES server `http://192.168.10.25:8000/mes/batch`.
 
-```mermaid
-flowchart LR
-    CTU1["CTU: Pallet_Counter<br/>PV = 50 | CV = CNT_PalletParts"] -- "Q (0 → 1) → Trig" --> HTTP1["HTTP_CLIENT: MES_Webhook<br/>POST http://192.168.10.25:8000/mes/batch"]
-    HTTP1 -- "Status (INT32)" --> CMP["COMPARATOR: EQ (== 200)"]
-    HTTP1 -- "Err" --> ALM["DIRECT_WRITE: DO2_MesSyncWarn"]
-```
+<div class="synx-node-chain">
+  <div class="synx-canvas-node is-counter">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M5.5,3 L5.5,13 M10.5,3 L10.5,13 M2,6.5 L14,6.5 M2,10 L14,10" /></svg>
+        <span>CTU COUNTER</span>
+      </div>
+      <span class="synx-node-status is-active">● 50 / 50</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">PV = 50 • CV CNT_Parts</span>
+        <span class="synx-node-alias">Pallet Finished</span>
+        <span class="synx-node-val">Rising Pulse Q</span>
+      </div>
+      <div class="synx-node-pin is-out">Q ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">TRIG</span>
+  </div>
+
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,5 L14,5 M14,5 L10,2 M14,5 L10,8 M14,11 L2,11 M2,11 L6,8 M2,11 L6,14" /></svg>
+        <span>HTTP_CLIENT</span>
+      </div>
+      <span class="synx-node-status is-active">● POST JSON</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● Trig</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">POST /mes/batch</span>
+        <span class="synx-node-alias">MES Webhook</span>
+        <span class="synx-node-val">Payload: Qty &amp; Temp C</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">STATUS</span>
+  </div>
+
+  <div class="synx-canvas-node is-comparator">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M3.5,6 L8,9 L3.5,12 M9.5,7 L13,7 M9.5,10.5 L13,10.5" /></svg>
+        <span>COMPARATOR</span>
+      </div>
+      <span class="synx-node-status is-true">● 200 OK</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">HTTP == 200</span>
+        <span class="synx-node-alias">Verify Response</span>
+        <span class="synx-node-val">Transaction Succeeded</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">ENABLE</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-pass">● CLEAR</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DO2 = 0</span>
+        <span class="synx-node-alias">Clear Network Alarm</span>
+        <span class="synx-node-val">Bus Health Healthy</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 **Configuration Steps:**
 1. Place **`HTTP_CLIENT`** on the canvas and open its configuration dialog:

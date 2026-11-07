@@ -17,22 +17,46 @@ Giao diện **SynaptiX IDE** được thiết kế tuân thủ nghiêm ngặt ch
 
 Cửa sổ chính của **SynaptiX IDE** được quy hoạch thành 6 phân vùng chức năng cố định, không chồng lấp hộp thoại nổi, giúp kỹ sư luôn kiểm soát trọn vẹn ngữ cảnh hệ thống:
 
-```mermaid
-flowchart TB
-    Z1["Phân vùng 1: Thanh Menu Lệnh & Cụm Kết nối Thiết bị Hợp nhất (USB CDC | Modbus TCP | F4 | AI Chatbox)"]
-    Z2["Phân vùng 2: Thanh Chuyển đổi 7 Không gian Làm việc Chính (Ctrl+1 Device ... Ctrl+7 Live Watch)"]
-    subgraph Mid["Khu vực Thiết kế & Vận hành Trung tâm"]
-        direction LR
-        Z3["Phân vùng 3: Hộp Khối Hàm<br/>& Phím tắt Giao thức<br/>(Rộng 265 px)"]
-        Z4["Phân vùng 4: Mặt vẽ Logic Vô tận<br/>(hoặc DTU Gateway Studio)<br/>+ Ngăn Mô phỏng Phía dưới"]
-        Z5["Phân vùng 5: Bảng Thuộc tính<br/>Theo Ngữ cảnh (Rộng 320 px)<br/>+ Cột AI Copilot Co giãn"]
-    end
-    Z6["Phân vùng 6: Thanh Trạng thái Chẩn đoán, Điều khiển Nhanh & Telemetry Phần cứng (Cao 36 px)"]
-
-    Z1 --> Z2
-    Z2 --> Mid
-    Mid --> Z6
-```
+<div class="synx-ide-mockup">
+  <div class="synx-ide-topbar">
+    <span>Phân vùng 1: Thanh Menu Lệnh (Tệp • Chỉnh sửa • Hiển thị • Thiết bị • Công cụ)</span>
+    <span style="color: #60a5fa;">[Cụm Kết nối: USB CDC / Modbus TCP • F4]</span>
+  </div>
+  <div class="synx-ide-navtabs">
+    <span class="synx-ide-tab">Ctrl+1 Device</span>
+    <span class="synx-ide-tab is-active">Ctrl+2 Logic Graph</span>
+    <span class="synx-ide-tab">Ctrl+3 Tag Catalog</span>
+    <span class="synx-ide-tab">Ctrl+4 Rule Table</span>
+    <span class="synx-ide-tab">Ctrl+5 Blueprints</span>
+    <span class="synx-ide-tab">Ctrl+6 Deploy</span>
+    <span class="synx-ide-tab">Ctrl+7 Live Watch</span>
+  </div>
+  <div class="synx-ide-body">
+    <div class="synx-ide-panel synx-ide-panel-left">
+      <div class="synx-ide-panel-header">Phân vùng 3 • Hộp Khối Hàm</div>
+      <p style="font-size: 0.76rem; color: var(--vp-c-text-2); margin: 0;">Khối Logic &amp; Hẹn giờ (TON, TOF, CTU...)<br/>Khối Ngoại vi (MB_READ, MQTT_PUB...)</p>
+      <div style="margin-top: auto; font-size: 0.72rem; color: var(--vp-c-text-3);">Rộng 265 px cố định</div>
+    </div>
+    <div class="synx-ide-panel synx-ide-panel-center">
+      <div>
+        <div class="synx-ide-panel-header">Phân vùng 4 • Mặt vẽ Logic Vô tận (Canvas)</div>
+        <p style="font-size: 0.78rem; color: var(--vp-c-text-2); margin: 0;">Kéo-thả khối hàm, nối dây tất định 4 giai đoạn, hiển thị trạng thái On/Off trực tiếp.</p>
+      </div>
+      <div style="background-color: var(--vp-c-bg); border: 1px dashed var(--vp-c-divider); border-radius: 4px; padding: 8px; font-size: 0.74rem; color: var(--vp-c-text-2);">
+        <strong>Ngăn Mô phỏng Động cơ Quét (Phía dưới Canvas)</strong> — Chạy chu kỳ 10ms mô phỏng độc lập (F5)
+      </div>
+    </div>
+    <div class="synx-ide-panel synx-ide-panel-right">
+      <div class="synx-ide-panel-header">Phân vùng 5 • Thuộc tính &amp; AI</div>
+      <p style="font-size: 0.76rem; color: var(--vp-c-text-2); margin: 0;">Cấu hình chân I/O, thời gian trễ ms, ngưỡng so sánh của khối đang chọn.</p>
+      <div style="margin-top: auto; font-size: 0.72rem; color: var(--vp-c-text-3);">Rộng 320 px + Cột AI Copilot</div>
+    </div>
+  </div>
+  <div class="synx-ide-statusbar">
+    <span>Phân vùng 6: Trạng thái Chu kỳ (Scan: 10.0ms • Jitter &lt;0.5ms • Mode: RUN)</span>
+    <span>CPU: 8% • RAM: 42 KB / 64 KB</span>
+  </div>
+</div>
 
 ---
 

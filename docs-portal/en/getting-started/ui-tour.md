@@ -17,22 +17,46 @@
 
 The main **SynaptiX IDE** window is partitioned into six deterministic, non-overlapping functional zones so engineers never lose context behind floating modal clutter:
 
-```mermaid
-flowchart TB
-    Z1["Zone 1: Top Menu Bar & Unified Target Connection Strip (USB CDC | Modbus TCP | F4 | AI Chatbox)"]
-    Z2["Zone 2: Primary 7-Tab Workspace Switcher (Ctrl+1 Device ... Ctrl+7 Live Watch)"]
-    subgraph Mid["Main Active Engineering Area"]
-        direction LR
-        Z3["Zone 3: Left Block Toolbox<br/>& Protocol Shortcuts<br/>(265 px)"]
-        Z4["Zone 4: Central Infinite Logic Canvas<br/>(or DTU Gateway Studio)<br/>+ Bottom Simulator Drawer"]
-        Z5["Zone 5: Right Context-Sensitive<br/>Property Inspector (320 px)<br/>+ Resizable AI Copilot Sidebar"]
-    end
-    Z6["Zone 6: Bottom Diagnostics, Runtime Controls & Hardware Telemetry Status Bar (36 px)"]
-
-    Z1 --> Z2
-    Z2 --> Mid
-    Mid --> Z6
-```
+<div class="synx-ide-mockup">
+  <div class="synx-ide-topbar">
+    <span>Zone 1: Top Command Menu Bar (File • Edit • View • Device • Tools • Help)</span>
+    <span style="color: #60a5fa;">[Unified Connection: USB CDC / Modbus TCP • F4]</span>
+  </div>
+  <div class="synx-ide-navtabs">
+    <span class="synx-ide-tab">Ctrl+1 Device</span>
+    <span class="synx-ide-tab is-active">Ctrl+2 Logic Graph</span>
+    <span class="synx-ide-tab">Ctrl+3 Tag Catalog</span>
+    <span class="synx-ide-tab">Ctrl+4 Rule Table</span>
+    <span class="synx-ide-tab">Ctrl+5 Blueprints</span>
+    <span class="synx-ide-tab">Ctrl+6 Deploy</span>
+    <span class="synx-ide-tab">Ctrl+7 Live Watch</span>
+  </div>
+  <div class="synx-ide-body">
+    <div class="synx-ide-panel synx-ide-panel-left">
+      <div class="synx-ide-panel-header">Zone 3 • Block Toolbox</div>
+      <p style="font-size: 0.76rem; color: var(--vp-c-text-2); margin: 0;">Logic &amp; Timers (TON, TOF, CTU...)<br/>Fieldbus &amp; IIoT (MB_READ, MQTT_PUB...)</p>
+      <div style="margin-top: auto; font-size: 0.72rem; color: var(--vp-c-text-3);">Fixed 265 px width</div>
+    </div>
+    <div class="synx-ide-panel synx-ide-panel-center">
+      <div>
+        <div class="synx-ide-panel-header">Zone 4 • Infinite Logic Canvas</div>
+        <p style="font-size: 0.78rem; color: var(--vp-c-text-2); margin: 0;">Drag-and-drop function blocks, 4-stage deterministic wiring, real-time pin value badges.</p>
+      </div>
+      <div style="background-color: var(--vp-c-bg); border: 1px dashed var(--vp-c-divider); border-radius: 4px; padding: 8px; font-size: 0.74rem; color: var(--vp-c-text-2);">
+        <strong>Embedded Scan Simulator Drawer (Bottom)</strong> — Standalone 10ms hardware scan cycle simulator (F5)
+      </div>
+    </div>
+    <div class="synx-ide-panel synx-ide-panel-right">
+      <div class="synx-ide-panel-header">Zone 5 • Property Inspector &amp; AI</div>
+      <p style="font-size: 0.76rem; color: var(--vp-c-text-2); margin: 0;">Pin bindings, millisecond delay presets, relational comparator thresholds.</p>
+      <div style="margin-top: auto; font-size: 0.72rem; color: var(--vp-c-text-3);">Fixed 320 px + Collapsible AI Copilot</div>
+    </div>
+  </div>
+  <div class="synx-ide-statusbar">
+    <span>Zone 6: Scan Diagnostics (Cycle: 10.0ms • Jitter &lt;0.5ms • Mode: RUN)</span>
+    <span>CPU: 8% • RAM: 42 KB / 64 KB</span>
+  </div>
+</div>
 
 ---
 

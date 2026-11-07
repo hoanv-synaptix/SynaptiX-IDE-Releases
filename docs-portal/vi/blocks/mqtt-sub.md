@@ -59,20 +59,12 @@ Khối `MQTT_SUB` để trống hoàn toàn cạnh trái (0 chân vào) và xu�
 
 ---
 
-## 4. Máy Trạng thái Hàng đợi & Giải mã Nguyên tử
+## 4. Nguyên lý Giải mã Nguyên tử Toàn vẹn (Atomic All-or-Nothing)
 
-```mermaid
-flowchart TD
-    RX["Nhận Gói tin MQTT Inbound"] --> RET{"Tin Retained lúc khởi động &amp;<br/>IgnoreRetainedOnBoot = true?"}
-    RET -- "Đúng" --> IGN["Hủy bỏ Gói Lưu cữu Cũ"]
-    RET -- "Không" --> Q{"Chế độ QueueMode?"}
-    Q -- "FIFO (16 ngăn)" --> FIFO["Đẩy vào Bộ đệm Vòng<br/>(Lấy tuần tự 1 tin / chu kỳ quét)"]
-    Q -- "LatestWins" --> LW["Ghi đè Giữ Gói Mới nhất"]
-    FIFO --> PARSE["Bộ Kiểm định JSON Nguyên tử All-or-Nothing<br/>(Cú pháp + Đủ trường + Đúng kiểu + Trong biên Min/Max)"]
-    LW --> PARSE
-    PARSE -- "100% Chân Hợp lệ" --> OK["Cập nhật Đồng thời Mọi Chân &amp; Tag<br/>Valid = 1 (Xung 1 chu kỳ) | Err = 0"]
-    PARSE -- "Bất kỳ Chân nào Lỗi" --> REJ["Bảo toàn Nguyên trạng Bộ nhớ!<br/>Err = 1 | Tăng DroppedCount | Ghi mã lỗi"]
-```
+Để bảo vệ an toàn cho máy móc trước các lệnh điều khiển sai cú pháp từ đám mây, khối `MQTT_SUB` áp dụng cơ chế phân giải nguyên tử:
+- **Nguyên tử toàn vẹn (All-or-Nothing):** Toàn bộ các trường trong gói tin JSON phải hợp lệ đồng thời (đúng cú pháp, đủ trường `JsonPath`, đúng kiểu dữ liệu và nằm trong dải an toàn `[MinValue .. MaxValue]`).
+- **Nếu 100% hợp lệ:** Cập nhật đồng loạt các chân ngõ ra và tag liên kết trong cùng 1 chu kỳ quét, đồng thời phát 1 xung `Valid = 1`.
+- **Nếu có bất kỳ lỗi nào:** Khối lập tức từ chối toàn bộ gói tin, kích hoạt cờ `Err = 1` và bảo lưu nguyên trạng bộ nhớ hiện tại. Không bao giờ cập nhật nửa vời làm chập chờn trạng thái thiết bị.
 
 ---
 
@@ -101,14 +93,98 @@ flowchart TD
 
 **Bài toán:** Nhận lệnh cài đặt nhiệt độ nước lạnh từ hệ thống BMS (`{"temp_sp": 7.5, "enable": true}`) trên topic `synaptix/hvac/chiller1/setpoint`, khóa cứng dải cho phép `[4.0 °C .. 18.0 °C]` để ngăn lỗi nhập nhầm số âm làm đóng băng dàn bay hơi, và tự động lùi về mức tiết kiệm `12.0 °C` nếu mất kết nối đám mây quá `60,000 ms`.
 
-```mermaid
-flowchart LR
-    SUB["MQTT_SUB: synaptix/hvac/chiller1/setpoint<br/>LatestWins | IgnoreRetained = true | Timeout = 60000 ms"]
-    SUB -- "temp_sp (FLOAT 4.0..18.0)" --> CMP["COMPARATOR: So sánh AI0_ChillerTemp &gt; temp_sp"]
-    SUB -- "enable (BOOL)" --> GRD["GUARD: Cổng Cho phép Từ xa"]
-    CMP -- "Out" --> GRD
-    GRD -- "Out" --> COMP["DIRECT_WRITE: DO0_CompressorContactor"]
-```
+<div class="synx-node-chain">
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,14 L8,8 M5,10 A4,4 0 0 1 11,10 M3,7.5 A7,7 0 0 1 13,7.5 M1.5,5 A9.5,9.5 0 0 1 14.5,5" /></svg>
+        <span>MQTT_SUB</span>
+      </div>
+      <span class="synx-node-status is-active">● WATCHDOG</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">LatestWins • 60s</span>
+        <span class="synx-node-alias">Điểm Đặt BMS</span>
+        <span class="synx-node-val">{temp_sp: 7.5, en: 1}</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">7.5 °C</span>
+  </div>
+
+  <div class="synx-canvas-node is-comparator">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M3.5,6 L8,9 L3.5,12 M9.5,7 L13,7 M9.5,10.5 L13,10.5" /></svg>
+        <span>COMPARATOR</span>
+      </div>
+      <span class="synx-node-status is-true">● GT SP</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">AI0 &gt; temp_sp</span>
+        <span class="synx-node-alias">So Sánh Nhiệt Nước</span>
+        <span class="synx-node-val">Nước Chiller Cần Làm Lạnh</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">TRUE</span>
+  </div>
+
+  <div class="synx-canvas-node is-guard">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 L13.5,4 L13.5,9.5 Q13.5,13.5 8,15 Q2.5,13.5 2.5,9.5 L2.5,4 Z" /></svg>
+        <span>GUARD</span>
+      </div>
+      <span class="synx-node-status is-pass">● PASS</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">RemoteEn == 1</span>
+        <span class="synx-node-alias">Cổng Cho Phép</span>
+        <span class="synx-node-val">Khóa Lệnh Từ Xa</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">ENABLE</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● SET 1</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DO0 = 1</span>
+        <span class="synx-node-alias">Máy Nén Chiller</span>
+        <span class="synx-node-val">Đóng Contactor Động Lực</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 **Các bước cấu hình:**
 1. Kéo khối **`MQTT_SUB`** ra vùng vẽ và cài đặt `Topic = "synaptix/hvac/chiller1/setpoint"`, `Qos = 1`, `QueueMode = LatestWins`, `IgnoreRetainedOnBoot = true`.

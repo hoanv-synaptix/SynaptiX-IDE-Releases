@@ -52,26 +52,12 @@ The **`TRIGGER`** block converts continuous state signals, register values, mono
 
 ---
 
-## 4. State Machine / Timing Diagram
+## 4. Debounce Filtering & Pulse Firing Rules
 
-The diagram below illustrates how `TRIGGER` (`ON_RISE` with `ForMs > 0`) rejects transient contact bounce shorter than `ForMs` while emitting a clean single-scan execution pulse once the dwell threshold is satisfied:
-
-```mermaid
-stateDiagram-v2
-    [*] --> IdleLow : "In == 0"
-    IdleLow : "IDLE (Waiting Rising Edge)"
-    DwellTiming : "DWELL FILTERING (0 < Elapsed < ForMs)"
-    Fired : "PULSE FIRED (Out = 1 for 1 Scan)"
-    LatchedHigh : "ARMED HOLD (In == 1, Waiting Return to 0)"
-
-    IdleLow --> Fired : "In: 0 -> 1 (when ForMs == 0)"
-    IdleLow --> DwellTiming : "In: 0 -> 1 (when ForMs > 0)"
-    DwellTiming --> IdleLow : "In drops to 0 before ForMs (Glitch Rejected)"
-    DwellTiming --> Fired : "Elapsed >= ForMs (Valid Transition)"
-    Fired --> LatchedHigh : "Next Scan (In remains 1)"
-    Fired --> IdleLow : "Next Scan (In == 0)"
-    LatchedHigh --> IdleLow : "In: 1 -> 0 (Re-arm Trigger)"
-```
+The `TRIGGER` block produces single-scan execution pulses with deterministic timing:
+- **Immediate Pulse (`ForMs = 0`):** As soon as the edge condition (`RISING`, `FALLING`, or `ANY_CHANGE`) is detected, pin `Out` emits a single pulse of level `1`, returning to `0` on the next scan cycle.
+- **Debounce Dwell Filter (`ForMs > 0`):** The input must remain stably at the new level for at least `ForMs` milliseconds before the pulse fires. Transient mechanical chatter or electromagnetic noise pulses shorter than `ForMs` are completely rejected.
+- **Automatic Re-arming:** After emitting a pulse, the block waits until the input signal returns to its opposing baseline before arming itself for the next edge event.
 
 ---
 
@@ -109,19 +95,119 @@ Factory yard floodlights wired to `DO2` must energize automatically throughout t
 3. Wire `TRIGGER.Out` into a **[`GUARD`](/blocks/guard)** block configured with `GuardTag = DI3` (`Negate = false`, pass when `Auto Mode = 1`), and wire `GUARD.Out` into an **[`ACTION`](/blocks/action)** block (`ActionType = SET_TAG`, `TargetTag = DO2`, `ActionParam = 1`).
 4. Add a second compact `TRIGGER` (`TriggerType = TIME_WINDOW`, `Point-in-Time = 06:01`) wired to an **[`ACTION`](/blocks/action)** (`ActionType = SET_TAG`, `TargetTag = DO2`, `ActionParam = 0`) to de-energize the floodlights cleanly at daybreak.
 
-```mermaid
-flowchart LR
-    RTC_ON["TRIGGER: TIME_WINDOW<br/>(Range 22:00 -> 06:00)"]
-    GRD_AUTO["GUARD: DI3<br/>(Auto Mode == 1)"]
-    ACT_ON["ACTION: SET_TAG<br/>(DO2 = 1)"]
+<div class="synx-node-chain" style="margin-bottom: 12px;">
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 A6.5,6.5 0 1 1 1.5,8 M8,1.5 L8,8 L11,10" /></svg>
+        <span>TRIGGER: RTC</span>
+      </div>
+      <span class="synx-node-status is-active">● WINDOW</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">22:00 .. 06:00</span>
+        <span class="synx-node-alias">Night Shift Window</span>
+        <span class="synx-node-val">Midnight Wrap Active</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
 
-    RTC_OFF["TRIGGER: TIME_WINDOW<br/>(At Time 06:01)"]
-    ACT_OFF["ACTION: SET_TAG<br/>(DO2 = 0)"]
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">IN_WINDOW</span>
+  </div>
 
-    RTC_ON -- "Out -> In" --> GRD_AUTO
-    GRD_AUTO -- "Out -> In" --> ACT_ON
-    RTC_OFF -- "Out -> In" --> ACT_OFF
-```
+  <div class="synx-canvas-node is-guard">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 L13.5,4 L13.5,9.5 Q13.5,13.5 8,15 Q2.5,13.5 2.5,9.5 L2.5,4 Z" /></svg>
+        <span>GUARD</span>
+      </div>
+      <span class="synx-node-status is-pass">● PASS</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DI3 == 1</span>
+        <span class="synx-node-alias">Auto Mode Selector</span>
+        <span class="synx-node-val">System Auto Active</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">ENABLE</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● SET 1</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DO2 = 1</span>
+        <span class="synx-node-alias">Perimeter Lights</span>
+        <span class="synx-node-val">Energize Night Bank</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
+
+<div class="synx-node-chain" style="margin-top: 12px;">
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 A6.5,6.5 0 1 1 1.5,8 M8,1.5 L8,8 L11,10" /></svg>
+        <span>TRIGGER: RTC</span>
+      </div>
+      <span class="synx-node-status is-active">● AT_TIME</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">06:01 AM</span>
+        <span class="synx-node-alias">Daybreak Cutout</span>
+        <span class="synx-node-val">Dawn Point-in-Time</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">FIRE</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-pass">● SET 0</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DO2 = 0</span>
+        <span class="synx-node-alias">De-energize Lights</span>
+        <span class="synx-node-val">Conserve Day Power</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 ::: tip Verify Battery-Backed RTC Before Commissioning
 Before deploying `TIME_WINDOW` rules to field hardware, open the [Device Workspace (`Ctrl+1`)](/workspaces/device-tab) and synchronize the **SynaptiX Edge Controller** Real-Time Clock with your engineering workstation.

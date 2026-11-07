@@ -65,59 +65,21 @@ When you change a tag's data type in the [Tag Catalog](/workspaces/tag-catalog-t
 
 ---
 
-## Visual Truth & Input State Machine (Bad-Data Defense)
+## Bad-Data Defense & Input Protection
 
-Industrial accidents and commissioning delays frequently occur when an engineering tool lets a user type `"25.5"` into an integer threshold box, leaves `"25.5"` visible on screen, and silently compiles `25` or `0` underneath.
+In industrial automation, mistyping a value (such as entering a fractional `"25.5"` into an integer threshold register) can cause incorrect control logic and factory downtime. **SynaptiX IDE** automatically safeguards PLC memory across all input fields (Property Inspector, Tag Catalog, Simulator, Live Watch) using two practical rules:
 
-**SynaptiX IDE** eliminates this hazard altogether through **The Visual Truth Principle** backed by a two-phase **Input Finite State Machine (`SmartInputParser`)** across every numeric and boolean input box in the IDE (Property Inspector, Tag Catalog, Simulator, and Live Watch Force dialogs):
-
-```mermaid
-stateDiagram-v2
-    [*] --> Committed: Initial Bound Tag Value
-
-    Committed --> Drafting: Focus Input and Type Keystrokes
-    Drafting --> Drafting: Transient Input Allowed (-, 25., 25,5, on)
-
-    Drafting --> Resolution: Commit Event (Enter or LostFocus)
-
-    state Resolution <<choice>>
-    Resolution --> AutoNormalize: Valid or Tolerant Input for Target Type
-    Resolution --> AutoRevert: Type Mismatch, Fractional INT32, or Out-of-Range
-
-    AutoNormalize --> Committed: Write Model and Normalize (100.0 to 100, 25 to 25.0)
-    AutoRevert --> Committed: Keep Model Intact and Restore Last Valid Text
-```
-
-### Two-Phase Lifecycle Mechanics
-
-1. **Phase A — Drafting State (In-Flight Typing):**
-   While the text box holds keyboard focus, the engineer can type freely without intrusive keystroke blocking. Transient intermediate strings such as `"-"`, `"25."`, regional decimal commas (`"65,5"`), or boolean words (`"on"`, `"bật"`) are permitted while editing is in progress.
-2. **Phase B — Committed State (`Enter` or `LostFocus`):**
-   The instant the engineer presses `Enter` or clicks away (`LostFocus`), the resolution engine validates the complete string against the target tag's exact physical `TagDataType`:
-   - **Auto-Normalize (Valid Input):** Commits the binary value to the underlying model and formats the displayed text into canonical IEC notation.
-   - **Auto-Revert (Invalid / Type-Mismatched Input):** Rejects the edit, leaves the underlying domain memory untouched, and immediately reverts the text box back to the **last valid committed string**. Unparsed text never lingers on screen.
-
-### Canonical Normalization & Rejection Matrix
-
-The table below documents exact resolution behavior assuming the field's previous committed value was `10` (for `INT32`), `10.0` (for `REAL`), or `0` (for `BOOL`):
-
-| Target Data Type | Engineer Types (Drafting) | Resolution Outcome | Resulting Model Value | Displayed Text After Commit |
-| :---: | :--- | :--- | :---: | :--- |
-| **`INT32`** | `"250"` | Valid Nominal | `250` | `"250"` |
-| **`INT32`** | `"100.0"` or `"100,0"` | **Auto-Normalize** (zero fraction tolerated) | `100` | `"100"` |
-| **`INT32`** | `"25.5"` or `"25,5"` | **Auto-Revert** (non-zero fraction illegal in `INT32`) | `10` *(Unchanged)* | `"10"` |
-| **`INT32`** | `"abc"` or `"999999999999"` | **Auto-Revert** (syntax / 32-bit overflow) | `10` *(Unchanged)* | `"10"` |
-| **`REAL`** | `"65.25"` | Valid Nominal | `65.25f` | `"65.25"` |
-| **`REAL`** | `"25"` | **Auto-Normalize** (adds `.0` decimal indicator) | `25.0f` | `"25.0"` |
-| **`REAL`** | `"25,5"` | **Auto-Normalize** (converts comma `,` to `.`) | `25.5f` | `"25.5"` |
-| **`REAL`** | `"-"`, `"."`, or `"err"` | **Auto-Revert** (incomplete or non-numeric) | `10.0f` *(Unchanged)* | `"10.0"` |
-| **`BOOL`** | `"1"`, `"true"`, `"on"`, `"yes"`, `"high"`, `"bật"` | **Auto-Normalize** (case-insensitive) | `1` | `"1"` |
-| **`BOOL`** | `"0"`, `"false"`, `"off"`, `"no"`, `"low"`, `"tắt"` | **Auto-Normalize** (case-insensitive) | `0` | `"0"` |
-| **`BOOL`** | `"invalid"` | **Auto-Revert** | `0` *(Unchanged)* | `"0"` |
-
-::: tip Decimal Comma Tolerance for International Keyboards
-Engineers typing on European or Vietnamese numeric layouts frequently enter `"25,5"` instead of `"25.5"`. On `REAL` fields, **SynaptiX IDE** automatically normalizes `"25,5"` to canonical `"25.5"` on commit. On `INT32` fields, `"100,0"` normalizes cleanly to `"100"`, whereas `"25,5"` safely reverts so fractional intent is never silently discarded.
+::: tip Safe Input Rules & Auto-Normalization
+- **Auto-Normalization:** Entering `100.0` or `100,0` into an integer `INT32` field is automatically cleaned up to `100`. For boolean (`BOOL`) tags, you can quickly type `1`, `0`, `on`, `off`, `bật`, or `tắt`.
+- **Auto-Revert:** If you accidentally enter an invalid type (such as typing `"25.5"` into `INT32` or typing letters into a numeric box), pressing <kbd>Enter</kbd> or clicking away **immediately restores the last valid value**. Hardware memory is protected from corrupted inputs.
 :::
+
+| Target Data Type | What You Type | Resolution Outcome | Actual Stored Value |
+| :---: | :--- | :--- | :---: |
+| **`INT32`** | `"100.0"` or `"100,0"` | **Auto-Normalize** (removes zero fraction) | `100` |
+| **`INT32`** | `"25.5"` or `"abc"` | **Auto-Revert** (rejects fraction/letters on integer) | *Keeps prior value* |
+| **`REAL`** | `"25"` or `"25,5"` | **Auto-Normalize** (`25` $\rightarrow$ `25.0`; `,` $\rightarrow$ `.`) | `25.0` / `25.5` |
+| **`BOOL`** | `"1"`, `"on"`, `"bật"` / `"0"`, `"off"`, `"tắt"` | **Auto-Normalize** to `1` or `0` | `1` / `0` |
 
 ---
 

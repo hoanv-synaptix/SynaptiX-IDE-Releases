@@ -76,17 +76,11 @@ and automatically sets `ClampMin = min(Y1, Y2)`, `ClampMax = max(Y1, Y2)`, and `
 
 ---
 
-## 4. Signal Conditioning Pipeline Diagram
+## 4. Signal Conditioning & Clamping Rules
 
-```mermaid
-flowchart LR
-    RAW["Raw Input x<br/>(AI0 / VREG INT32)"] --> LIN["Linear Equation<br/>y_raw = Gain · x + Offset"]
-    LIN --> CHK{"IsClamped == true?"}
-    CHK -- "Yes" --> SAT["Saturation Limiter<br/>Clamp(y_raw, ClampMin, ClampMax)"]
-    CHK -- "No" --> PASS["Unbounded y_raw"]
-    SAT --> OUT["OutputTag (FLOAT32)<br/>&amp; Canvas Pill (e.g. 6.4 bar · 40%)"]
-    PASS --> OUT
-```
+The `SCALE` block computes its calibrated output across two deterministic stages:
+1. **Linear Transformation:** $y = \text{Gain} \cdot x + \text{Offset}$ (where $x$ is the raw input from `InputTag` or pin `In`).
+2. **Safe Clamping (`IsClamped = true`):** If the computed value falls outside `[ClampMin .. ClampMax]`, it is automatically clamped to the nearest boundary, protecting downstream logic from broken sensor cables or ADC outliers.
 
 ---
 
@@ -105,13 +99,98 @@ flowchart LR
 
 **Objective:** Read a `4–20 mA` pressure transmitter wired across a precision `500 Ω` shunt on `AI0` (`2000 mV` at `0 bar`, `10000 mV` at `16 bar`), clamp broken-wire `0 mV` readings safely at `0.0 bar`, store the calibrated pressure in `VREG0_PipeBar` (`REAL`), and trip high-pressure cutoff above `12.5 bar`.
 
-```mermaid
-flowchart LR
-    AI0["INPUT: AI0_RawMv<br/>(2000..10000 mV)"] -- "IN" --> SCL["SCALE: Pump Pressure<br/>Gain = 0.002 | Offset = -4.0<br/>Clamp: 0.0 .. 16.0 bar"]
-    SCL -- "OUT (VREG0_PipeBar)" --> CMP["COMPARATOR: GT (&gt; 12.5 bar)"]
-    SCL -- "OUT (VREG0_PipeBar)" --> PUB["MQTT_PUB: synaptix/pump1/pressure"]
-    CMP -- "Out" --> ACT["DIRECT_WRITE: DO0_PumpRelay (OFF)"]
-```
+<div class="synx-node-chain" style="margin-bottom: 12px;">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● AI0</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">4-20mA Sensor</span>
+        <span class="synx-node-alias">Raw Voltage AI0</span>
+        <span class="synx-node-val">2000..10000 mV</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Raw ADC</span>
+  </div>
+
+  <div class="synx-canvas-node is-timer">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,13 L5,13 L5,9.5 L8,9.5 L8,6 L11,6 L11,3 L14,3" /></svg>
+        <span>SCALE</span>
+      </div>
+      <span class="synx-node-status is-active">● CALIBRATED</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Linear Scaling</span>
+        <span class="synx-node-alias">Register VREG0</span>
+        <span class="synx-node-val">0.0 .. 16.0 bar</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">13.1 bar</span>
+  </div>
+
+  <div class="synx-canvas-node is-comparator">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M3.5,6 L8,9 L3.5,12 M9.5,7 L13,7 M9.5,10.5 L13,10.5" /></svg>
+        <span>COMPARATOR</span>
+      </div>
+      <span class="synx-node-status is-true">● TRIP HIGH</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Over-Pressure Trip</span>
+        <span class="synx-node-alias">Limit Threshold</span>
+        <span class="synx-node-val">&gt; 12.5 bar</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">TRIP</span>
+  </div>
+
+  <div class="synx-canvas-node is-direct">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>DIRECT_WRITE</span>
+      </div>
+      <span class="synx-node-status is-active">● SHUTDOWN</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Trip Pump Relay</span>
+        <span class="synx-node-alias">Safety Cutoff</span>
+        <span class="synx-node-val">DO0 = 0</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 **Configuration Steps:**
 1. Create `VREG0_PipeBar` in [Tag Catalog](/workspaces/tag-catalog-tab) with Data Type = **`REAL` (`FLOAT32`)**.

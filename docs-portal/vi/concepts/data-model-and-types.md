@@ -65,59 +65,21 @@ Khi bạn đổi kiểu dữ liệu của một Tag trong [Tag Catalog](/vi/work
 
 ---
 
-## Nguyên lý Sự thật Thị giác & Máy Trạng thái Chống Nhập sai (Bad-Data Defense)
+## Cơ chế Tự động Bảo vệ khi Nhập liệu (Bad-Data Defense)
 
-Nhiều sự cố vận hành công nghiệp bắt nguồn từ việc phần mềm cấu hình cho phép người dùng gõ `"25.5"` vào ô ngưỡng số nguyên, vẫn giữ nguyên chữ `"25.5"` trên màn hình nhưng bên dưới lại âm thầm biên dịch thành `25` hoặc `0`.
+Trong vận hành tự động hóa, việc lỡ tay gõ nhầm một giá trị sai (như gõ số lẻ `"25.5"` vào biến số nguyên đặt ngưỡng rơ-le) có thể gây sai lệch logic và dừng chuyền sản xuất. **SynaptiX IDE** tự động bảo vệ an toàn dữ liệu trên toàn bộ giao diện (Property Inspector, Tag Catalog, Simulator, Live Watch) theo 2 quy tắc trực quan:
 
-**SynaptiX IDE** triệt tiêu hoàn toàn rủi ro này thông qua **Nguyên lý Sự thật Thị giác (Visual Truth)** được bảo vệ bởi **Máy Trạng thái Hữu hạn 2 Pha (`SmartInputParser`)** trên tất cả các ô nhập liệu số và logic trong toàn bộ IDE (Property Inspector, Tag Catalog, Simulator và hộp thoại cưỡng bức biến Live Watch):
-
-```mermaid
-stateDiagram-v2
-    [*] --> Committed: Giá trị Tag Hợp lệ Ban đầu
-
-    Committed --> Drafting: Nhấp chuột và Gõ phím
-    Drafting --> Drafting: Cho phép Ký tự Tạm thời (-, 25., 25,5, bật)
-
-    Drafting --> Resolution: Sự kiện Chốt (Enter hoặc LostFocus)
-
-    state Resolution <<choice>>
-    Resolution --> AutoNormalize: Hợp lệ hoặc Biến thể Dung thứ của Kiểu Đích
-    Resolution --> AutoRevert: Sai kiểu, Số lẻ vào INT32 hoặc Tràn dải 32-bit
-
-    AutoNormalize --> Committed: Ghi Bộ nhớ và Chuẩn hóa (100.0 thành 100, 25 thành 25.0)
-    AutoRevert --> Committed: Giữ Nguyên Bộ nhớ và Hoàn nguyên Chuỗi Cũ
-```
-
-### Cơ chế Vận hành 2 Pha
-
-1. **Pha A — Trạng thái Soạn thảo Tạm thời (Drafting State):**
-   Khi con trỏ đang nằm trong ô nhập liệu, kỹ sư được tự do gõ phím mà không bị chặn phím gây khó chịu. Các chuỗi trung gian đang gõ dở như dấu âm `"-"`, `"25."`, dấu phẩy thập phân vùng miền (`"65,5"`) hoặc từ khóa tiếng Việt/Anh (`"bật"`, `"on"`) đều được chấp nhận tạm thời.
-2. **Pha B — Trạng thái Cam kết Chính thức (Committed State khi nhấn `Enter` hoặc `LostFocus`):**
-   Ngay khoảnh khắc kỹ sư nhấn phím `Enter` hoặc nhấp chuột ra ngoài (`LostFocus`), bộ phân tích sẽ đối chiếu toàn bộ chuỗi vừa nhập với kiểu vật lý `TagDataType` của biến đích:
-   - **Tự động Chuẩn hóa (Auto-Normalize):** Nếu hợp lệ, ghi giá trị nhị phân vào mô hình dữ liệu và định dạng lại chuỗi hiển thị về chuẩn công nghiệp IEC.
-   - **Tự động Hoàn nguyên (Auto-Revert):** Nếu sai kiểu hoặc không hợp lệ, từ chối thay đổi, bảo toàn tuyệt đối giá trị trong bộ nhớ và lập tức trả ô văn bản về **giá trị hợp lệ gần nhất trước đó**. Không bao giờ để sót chuỗi rác hay số sai kiểu nằm lại trên giao diện.
-
-### Bảng Tra cứu Quy tắc Chuẩn hóa & Hoàn nguyên Thực tế
-
-Bảng dưới đây minh họa kết quả xử lý chính xác khi giá trị hợp lệ trước đó đang lưu là `10` (với `INT32`), `10.0` (với `REAL`) hoặc `0` (với `BOOL`):
-
-| Kiểu Dữ liệu Đích | Chuỗi Kỹ sư Gõ vào (Drafting) | Kết quả Phân giải | Giá trị Lưu trong Bộ nhớ | Chuỗi Hiển thị Sau khi Chốt |
-| :---: | :--- | :--- | :---: | :--- |
-| **`INT32`** | `"250"` | Hợp lệ chuẩn | `250` | `"250"` |
-| **`INT32`** | `"100.0"` hoặc `"100,0"` | **Tự động Chuẩn hóa** (dung thứ đuôi `.0`) | `100` | `"100"` |
-| **`INT32`** | `"25.5"` hoặc `"25,5"` | **Tự động Hoàn nguyên** (cấm phần lẻ trên `INT32`) | `10` *(Giữ nguyên)* | `"10"` |
-| **`INT32`** | `"abc"` hoặc `"999999999999"` | **Tự động Hoàn nguyên** (lỗi cú pháp / tràn 32-bit) | `10` *(Giữ nguyên)* | `"10"` |
-| **`REAL`** | `"65.25"` | Hợp lệ chuẩn | `65.25f` | `"65.25"` |
-| **`REAL`** | `"25"` | **Tự động Chuẩn hóa** (tự gắn đuôi `.0`) | `25.0f` | `"25.0"` |
-| **`REAL`** | `"25,5"` | **Tự động Chuẩn hóa** (đổi dấu phẩy `,` thành `.`) | `25.5f` | `"25.5"` |
-| **`REAL`** | `"-"`, `"."` hoặc `"err"` | **Tự động Hoàn nguyên** (gõ dở hoặc sai cú pháp) | `10.0f` *(Giữ nguyên)* | `"10.0"` |
-| **`BOOL`** | `"1"`, `"true"`, `"on"`, `"yes"`, `"high"`, `"bật"` | **Tự động Chuẩn hóa** (không phân biệt hoa/thường) | `1` | `"1"` |
-| **`BOOL`** | `"0"`, `"false"`, `"off"`, `"no"`, `"low"`, `"tắt"` | **Tự động Chuẩn hóa** (không phân biệt hoa/thường) | `0` | `"0"` |
-| **`BOOL`** | `"sai_kieu"` | **Tự động Hoàn nguyên** | `0` *(Giữ nguyên)* | `"0"` |
-
-::: tip Hỗ trợ Dấu Phẩy Thập phân Tiện lợi cho Bàn phím Quốc tế & Việt Nam
-Kỹ sư thao tác nhanh trên cụm phím số thường gõ `"25,5"` thay vì `"25.5"`. Trên các trường kiểu `REAL`, **SynaptiX IDE** tự động chuyển đổi `"25,5"` về chuẩn `"25.5"` ngay khi chốt. Trên các trường kiểu `INT32`, `"100,0"` được chuẩn hóa gọn thành `"100"`, trong khi `"25,5"` sẽ hoàn nguyên an toàn để cảnh báo kỹ sư rằng biến đích đang là số nguyên.
+::: tip Quy tắc Nhập liệu An toàn & Tự động Chuẩn hóa
+- **Tự động làm sạch định dạng:** Khi nhập `100.0` hoặc `100,0` vào biến số nguyên `INT32`, phần mềm tự chuẩn hóa thành `100`. Đối với biến Logic (`BOOL`), bạn có thể gõ nhanh `1`, `0`, `on`, `off`, `bật`, `tắt`.
+- **Tự động hoàn nguyên (Auto-Revert):** Nếu bạn vô tình gõ sai kiểu (gõ `"25.5"` vào `INT32` hoặc gõ chữ vào ô số), ngay khi bạn nhấn <kbd>Enter</kbd> hoặc click chuột ra ngoài, ô nhập liệu sẽ **lập tức khôi phục về giá trị hợp lệ trước đó**. Dữ liệu trong bộ nhớ thiết bị được bảo toàn tuyệt đối, không bao giờ để lọt giá trị rác.
 :::
+
+| Kiểu Dữ liệu Đích | Giá trị Bạn Gõ vào | Kết quả Xử lý | Giá trị Thực tế Ghi nhận |
+| :---: | :--- | :--- | :---: |
+| **`INT32`** | `"100.0"` hoặc `"100,0"` | **Tự động chuẩn hóa** (bỏ đuôi thập phân `.0`) | `100` |
+| **`INT32`** | `"25.5"` hoặc `"abc"` | **Tự động hoàn nguyên** (từ chối số lẻ/chữ trên số nguyên) | *Giữ nguyên giá trị cũ* |
+| **`REAL`** | `"25"` hoặc `"25,5"` | **Tự động chuẩn hóa** (`25` $\rightarrow$ `25.0`; đổi `,` thành `.`) | `25.0` / `25.5` |
+| **`BOOL`** | `"1"`, `"on"`, `"bật"` / `"0"`, `"off"`, `"tắt"` | **Tự động chuẩn hóa** thành `1` hoặc `0` | `1` / `0` |
 
 ---
 

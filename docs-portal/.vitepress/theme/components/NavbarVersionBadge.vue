@@ -16,18 +16,18 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  margin-left: 8px;
-  padding: 2px 7px;
+  height: 26px;
+  padding: 0 8px;
   border-radius: 4px;
-  background-color: var(--vp-c-bg-soft);
+  background-color: var(--vp-c-bg-alt);
   border: 1px solid var(--vp-c-divider);
   font-family: var(--vp-font-family-mono);
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   font-weight: 600;
   color: var(--vp-c-text-2);
   text-decoration: none !important;
-  vertical-align: middle;
   transition: all 0.16s ease;
+  white-space: nowrap;
 }
 
 .synx-nav-version-badge:hover {

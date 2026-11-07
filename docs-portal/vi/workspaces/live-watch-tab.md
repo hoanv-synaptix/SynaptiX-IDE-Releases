@@ -32,12 +32,98 @@ Giao diện **Live Watch** kết hợp đồng bộ giữa **Dải Chẩn đoán
 
 Khác với các phần mềm cổ điển dùng vòng lặp hỏi vòng gây treo giao diện hoặc chiếm dụng băng thông nối tiếp khi chạy nền, **SynaptiX IDE** chỉ kích hoạt luồng thu thập tốc độ cao đúng khi người dùng mở **Live Watch** (`Ctrl+7`) hoặc bật **Gỡ lỗi Trực tuyến** (`F8`):
 
-```mermaid
-flowchart LR
-    HW["SynaptiX Runtime (Chu kỳ Quét Phần cứng)"] -->|"Kênh Sự kiện Hướng đẩy (Push Channel)"| STORE["IRuntimeStateStore (Ảnh chụp Không khóa)"]
-    STORE -->|"Gộp khung 50 ms (20 FPS) lên UI"| UI["Bảng Live Watch, Đèn LED & Sparkline"]
-    STORE -->|"Bộ Giám sát Sức khỏe & Thời hạn"| Q["Trạng thái Sự thật Thị giác: GOOD vs STALE"]
-```
+<div class="synx-node-chain" style="margin-bottom: 12px;">
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>NGUỒN 10ms</span>
+      </div>
+      <span class="synx-node-status is-live">● 100 Hz</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">SynaptiX Runtime</span>
+        <span class="synx-node-alias">Quét Phần Cứng</span>
+        <span class="synx-node-val">Hard Real-Time</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Push</span>
+  </div>
+
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M3.5,6 L8,9 L3.5,12 M9.5,7 L13,7 M9.5,10.5 L13,10.5" /></svg>
+        <span>BỘ ĐỆM</span>
+      </div>
+      <span class="synx-node-status">ATOMIC</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">IRuntimeStateStore</span>
+        <span class="synx-node-alias">Bộ Nhớ Không Khóa</span>
+        <span class="synx-node-val">Snapshots 20 FPS</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Render</span>
+  </div>
+
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>GIAO DIỆN</span>
+      </div>
+      <span class="synx-node-status">20 FPS</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Live Watch UI</span>
+        <span class="synx-node-alias">WPF DataGrid</span>
+        <span class="synx-node-val">Đồ Thị Sparkline</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Truth</span>
+  </div>
+
+  <div class="synx-canvas-node is-step is-done">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 L13.5,4 L13.5,9.5 Q13.5,13.5 8,15 Q2.5,13.5 2.5,9.5 L2.5,4 Z" /></svg>
+        <span>CHẤT LƯỢNG</span>
+      </div>
+      <span class="synx-node-status is-active">● VERIFIED</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Sự Thật Thị Giác</span>
+        <span class="synx-node-alias">Bảo Vệ Người Dùng</span>
+        <span class="synx-node-val">GOOD vs STALE</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 ### 2.2. Tham chiếu Dải Sức khỏe Phần cứng & Thanh Công cụ
 

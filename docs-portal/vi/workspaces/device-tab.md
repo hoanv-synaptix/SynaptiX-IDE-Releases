@@ -86,13 +86,122 @@ Phần thân chính của Tab 1 (`Ctrl+1`) tích hợp không gian cấu hình n
 4. Quan sát huy hiệu trạng thái chuyển từ `Connecting` sang `Connected` (màu xanh lá chuẩn ISA-101) và kiểm tra bảng **Device Identity** để xác nhận phiên bản firmware cùng cấu hình I/O.
 5. Xác nhận **SynaptiX IDE** đã tự động đồng bộ hồ sơ phần cứng trong [Danh mục Biến — Tag Catalog](/vi/workspaces/tag-catalog-tab) khớp với số kênh `DI`, `DO`, `AI` thực tế của thiết bị.
 
-```mermaid
-flowchart LR
-    A["Chọn Giao thức: USB CDC hoặc Modbus TCP"] --> B["Nhấn F4: Khởi tạo Bắt tay"]
-    B --> C["Đọc Hồ sơ Phần cứng & Phiên bản FW"]
-    C --> D["Tự động Đồng bộ Tag Catalog & Khối hàm"]
-    D --> E["Phiên Hoạt động: Sẵn sàng Đồng bộ RTC, Đọc (F6) hoặc Nạp (Ctrl+F5)"]
-```
+<div class="synx-node-chain" style="margin-bottom: 12px;">
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>BƯỚC 1</span>
+      </div>
+      <span class="synx-node-status">MEDIUM</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Chọn Giao Thức</span>
+        <span class="synx-node-alias">Cổng Kết Nối</span>
+        <span class="synx-node-val">USB CDC / TCP :502</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Connect</span>
+  </div>
+
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M3.5,6 L8,9 L3.5,12 M9.5,7 L13,7 M9.5,10.5 L13,10.5" /></svg>
+        <span>BƯỚC 2</span>
+      </div>
+      <span class="synx-node-status">HANDSHAKE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Bắt Tay Kết Nối</span>
+        <span class="synx-node-alias">Phím Nhanh F4</span>
+        <span class="synx-node-val">Huy Hiệu Connected</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Read FW</span>
+  </div>
+
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 L13.5,4 L13.5,9.5 Q13.5,13.5 8,15 Q2.5,13.5 2.5,9.5 L2.5,4 Z" /></svg>
+        <span>BƯỚC 3</span>
+      </div>
+      <span class="synx-node-status">IDENTIFY</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Nhận Diện Target</span>
+        <span class="synx-node-alias">Hồ Sơ Phần Cứng</span>
+        <span class="synx-node-val">Đọc FW &amp; I/O Map</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Sync</span>
+  </div>
+
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,13 L5,13 L5,9.5 L8,9.5 L8,6 L11,6 L11,3 L14,3" /></svg>
+        <span>BƯỚC 4</span>
+      </div>
+      <span class="synx-node-status">SYNC</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Tự Động Đồng Bộ</span>
+        <span class="synx-node-alias">Cập Nhật Danh Mục</span>
+        <span class="synx-node-val">Tag Catalog &amp; Toolbox</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Ready</span>
+  </div>
+
+  <div class="synx-canvas-node is-step is-done">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>BƯỚC 5</span>
+      </div>
+      <span class="synx-node-status is-active">● READY</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Phiên Sẵn Sàng</span>
+        <span class="synx-node-alias">Giám Sát &amp; Nạp</span>
+        <span class="synx-node-val">Live Watch / Deploy</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 ### Quy trình 3.2: Đồng bộ Đồng hồ Thời gian Thực (RTC) cho Thiết bị
 

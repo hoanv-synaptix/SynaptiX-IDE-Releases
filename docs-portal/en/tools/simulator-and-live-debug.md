@@ -48,15 +48,14 @@ While running or single-stepping, the Simulator displays two synchronized diagno
 
 Once your logic is verified offline and deployed (`Ctrl+F5`) to a physical SynaptiX unit connected via **USB CDC** or **Modbus TCP (`F4`)**, switch to the [Logic Graph (`Ctrl+2`)](/workspaces/logic-graph-tab) and press `F8` to activate **Online Live Debug**.
 
-```mermaid
-flowchart LR
-    HW["Physical SynaptiX Device (10 ms Scan)"] -->|"Push Stream / Block Poll"| Rx["Reactive State Store"]
-    Rx -->|"Downsample & Debounce (50 ms / 20 FPS)"| UI["Logic Graph Canvas (F8 Live Overlay)"]
-    UI --> W["Energized Boolean Wires (Green)"]
-    UI --> V["Live Numeric Pin Badges (INT32 / REAL)"]
-    UI --> T["Timer ET / PT Progress Bars"]
-    UI --> S["[STALE] Sensor Fault Badges"]
-```
+::: tip Live Visual States on the Canvas during F8
+Pressing **F8** transforms your static logic drawing into a live operational mimic:
+- 🟢 **Energized Green Wires:** Active logic paths carrying `TRUE` / level `1`.
+- ⚫ **Neutral Slate Wires:** Inactive logic paths (`FALSE` / level `0`).
+- 🔢 **Live Pin Badges:** Direct engineering values rendered at block pins (`INT32`, `REAL`, units).
+- ⏱️ **Timer Progress:** Real-time countdowns (`ET` / `PT`) on `TON`, `TOF`, and `TP` timer blocks.
+- ⚠️ **`[STALE]` Badges:** Instant alerts for disconnected RS-485 cables or timed-out MQTT brokers.
+:::
 
 ### 2.1 Live Visual Overlays on the Canvas
 

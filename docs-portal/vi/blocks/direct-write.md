@@ -75,20 +75,13 @@ Tuyệt đối không cấu hình chế độ `PwmDuty` hoặc `PulseTrain` tầ
 
 ---
 
-## 4. Sơ đồ Phân phối Ngoại vi Phần cứng
+## 4. Cơ chế Điều khiển Ngõ ra Trực tiếp
 
-```mermaid
-flowchart TD
-    TRIG["Cổng Kích hoạt<br/>(Continuous | Sườn lên Trig ↑ | COV Δ ≥ Deadband)"] --> MODE{"Chế độ Hoạt động Đã chọn"}
-    MODE -- "DigitalOutput" --> DO["Trình Xuất Đảo cực &amp; Fail-Safe<br/>(Active-High/Low → DOx)"]
-    MODE -- "PwmDuty" --> PWM["Bộ Định thời Phần cứng PWM<br/>Kẹp biên(Duty, DutyMin..DutyMax) @ PwmFrequencyHz"]
-    MODE -- "PulseTrain (PTO)" --> PTO["Bộ Phát Xung Bước DMA / Timer<br/>N Xung @ min(Freq, MaxFrequencyHz)"]
-    MODE -- "AddressableBus" --> BUS["Bộ Mã hóa Chuỗi Bit Nối tiếp<br/>Chan 1..ChannelCount (Độc quyền / Độc lập)"]
-    DO --> TERM["Cọc Vật lý DO0..DO7 + Xung Done"]
-    PWM --> TERM
-    PTO --> TERM
-    BUS --> TERM
-```
+Khối `DIRECT_WRITE` can thiệp trực tiếp vào ngoại vi phần cứng theo chế độ cấu hình:
+- **Ngõ ra Số (`DigitalOutput`):** Đóng/cắt rơ-le hoặc cọc transistor `DO0..DO7` với cực tính tùy chọn (`Active-High` hoặc `Active-Low`) và trạng thái an toàn Fail-Safe khi dừng máy.
+- **Băm xung PWM (`PwmDuty`):** Xuất xung điều tốc với tần số sóng mang `PwmFrequencyHz` và độ rộng xung kẹp trong dải an toàn `[DutyMin .. DutyMax]%`.
+- **Phát xung bước PTO (`PulseTrain`):** Điều khiển động cơ bước/servo qua chuỗi xung tần số cao giới hạn an toàn dưới `MaxFrequencyHz`.
+- **Bus định địa chỉ (`AddressableBus`):** Điều khiển cụm đèn chỉ thị hoặc dàn cơ cấu chấp hành nối tiếp theo chế độ chọn kênh.
 
 ---
 
@@ -106,12 +99,74 @@ flowchart TD
 
 **Bài toán:** Chuyển đổi nhiệt độ trong tủ điều khiển (`25.0 °C .. 65.0 °C`) qua khối [`SCALE`](/vi/blocks/scale) thành độ rộng xung `20% .. 100%` tần số `1000 Hz` tại ngõ ra bán dẫn `DO0`, chỉ cập nhật phần cứng khi phần trăm thay đổi từ `1.0%` trở lên (`OnChangeOfValue`).
 
-```mermaid
-flowchart LR
-    AI1["INPUT: AI1_CabinetNtc"] -- "IN" --> SCL["SCALE: Temp_To_Duty<br/>25..65 °C → 20..100 %"]
-    SCL -- "OUT → Duty" --> PWM["DIRECT_WRITE: Fan_PWM<br/>PIN: DO0 | PWM 1000 Hz | COV Δ1.00"]
-    PWM -- "Err" --> FAULT["ACTION: Set VBIT_HwFault"]
-```
+<div class="synx-node-chain" style="margin-bottom: 12px;">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● AI1</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Cảm Biến NTC</span>
+        <span class="synx-node-alias">Nhiệt Độ Tủ Điện</span>
+        <span class="synx-node-val">AI1 • INT32</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Raw ADC</span>
+  </div>
+
+  <div class="synx-canvas-node is-timer">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,13 L5,13 L5,9.5 L8,9.5 L8,6 L11,6 L11,3 L14,3" /></svg>
+        <span>SCALE</span>
+      </div>
+      <span class="synx-node-status is-active">● 25..65°C</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Quy Đổi Duty %</span>
+        <span class="synx-node-alias">Độ Rộng Xung Quạt</span>
+        <span class="synx-node-val">20.0 .. 100.0 %</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Duty %</span>
+  </div>
+
+  <div class="synx-canvas-node is-direct">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>DIRECT_WRITE</span>
+      </div>
+      <span class="synx-node-status is-active">● 1000Hz PWM</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● Duty</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Ngõ Ra Bán Dẫn</span>
+        <span class="synx-node-alias">PWM Quạt Tủ</span>
+        <span class="synx-node-val">DO0 • PwmDuty</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 **Các bước cấu hình:**
 1. Cấu hình khối [`SCALE`](/vi/blocks/scale) bằng Hiệu chuẩn 2 Điểm (`X1 = 250, Y1 = 20`; `X2 = 650, Y2 = 100`, `IsClamped = true`) để ngõ ra tỷ lệ tuyến tính trong dải `20.0 .. 100.0 %`.

@@ -50,34 +50,12 @@ The **`COMPARATOR`** (`CMP`) block is a type-locked relational function that con
 
 ---
 
-## 4. State Machine / Timing Diagram
+## 4. Evaluation Rules & Live Operational States
 
-The flow diagram below details the type-dispatched evaluation pipeline executed inside `COMPARATOR` on each scan cycle and during 20 FPS Online Live Debug:
-
-```mermaid
-flowchart LR
-    RAW["Sample Upstream InputTag<br/>(32-bit Process Image RawValue)"]
-    TYPE{"Inspect Bound<br/>Data Type"}
-
-    REAL_PATH["Decode IEEE-754 Float32<br/>EQ/NEQ: |val - Lo| <= 1e-5<br/>GT/LT/GTE/LTE/BETWEEN"]
-    BOOL_PATH["Normalize Target to 0 or 1<br/>Evaluate EQ (==) or NEQ (!=)"]
-    INT_PATH["Signed 32-bit Integer<br/>Exact Relational Check<br/>[Lo..Hi] Inclusive"]
-
-    TRUE_OUT["Out = 1<br/>(Badge: ✓ TRUE · Active Green)"]
-    FALSE_OUT["Out = 0<br/>(Badge: FALSE · Neutral Slate)"]
-
-    RAW --> TYPE
-    TYPE -- "REAL (Float32)" --> REAL_PATH
-    TYPE -- "BOOL (Digital)" --> BOOL_PATH
-    TYPE -- "INT32 (Integer)" --> INT_PATH
-
-    REAL_PATH -- "Condition Met" --> TRUE_OUT
-    REAL_PATH -- "Not Met" --> FALSE_OUT
-    BOOL_PATH -- "Condition Met" --> TRUE_OUT
-    BOOL_PATH -- "Not Met" --> FALSE_OUT
-    INT_PATH -- "Condition Met" --> TRUE_OUT
-    INT_PATH -- "Not Met" --> FALSE_OUT
-```
+During each controller scan cycle:
+- **Condition Met:** Pin `Out` asserts `1` (`TRUE`), rendering active green during Online Live Debug (`F8`).
+- **Condition Not Met:** Pin `Out` de-asserts `0` (`FALSE`) with neutral slate styling.
+- **Type Compatibility:** Comparisons automatically adhere to the physical data type: exact integer arithmetic (`INT32`), floating-point tolerance (`REAL` via IEEE-754 epsilon), or boolean logic (`BOOL`).
 
 ---
 
@@ -121,16 +99,119 @@ In a food-processing neutralization tank, calibrated `REAL` pH measurement store
 4. Wire `COMPARATOR.Out` → **[`TRIGGER`](/blocks/trigger)** (`TriggerType = ON_RISE`, `ForMs = 3000`) → **[`ACTION`](/blocks/action)** (`ActionType = SET_TAG`, `TargetTag = DO4`, `ActionParam = 1`).
 5. Press `F5` to simulate: inject raw values corresponding to `pH = 7.2` (`AI1 = 12228`), observe `COMPARATOR` assert `✓ TRUE`, wait `3000 ms` for the `TRIGGER` dwell filter, and confirm `DO4` energizes to `1`.
 
-```mermaid
-flowchart LR
-    IN_RAW["INPUT: AI1<br/>(Raw 4-20 mA)"]
-    SCL_PH["SCALE -> VREG2<br/>(0.0 .. 14.0 pH · REAL)"]
-    CMP_BAND["COMPARATOR: BETWEEN<br/>(6.5 <= VREG2 <= 8.5)"]
-    TRG_DWELL["TRIGGER: ON_RISE<br/>(ForMs = 3000 ms)"]
-    ACT_VALVE["ACTION: SET_TAG<br/>(DO4 = 1)"]
+<div class="synx-node-chain">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● 4..20mA</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">AI1 • INT32</span>
+        <span class="synx-node-alias">Raw pH Current</span>
+        <span class="synx-node-val">4000 .. 20000 Raw</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
 
-    IN_RAW -- "Out -> In" --> SCL_PH
-    SCL_PH -- "Out -> In" --> CMP_BAND
-    CMP_BAND -- "Out -> In (BOOL)" --> TRG_DWELL
-    TRG_DWELL -- "Out -> In (Event)" --> ACT_VALVE
-```
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">12228</span>
+  </div>
+
+  <div class="synx-canvas-node is-timer">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,13 L5,13 L5,9.5 L8,9.5 L8,6 L11,6 L11,3 L14,3" /></svg>
+        <span>SCALE</span>
+      </div>
+      <span class="synx-node-status is-active">● 7.2 pH</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">VREG2 • REAL</span>
+        <span class="synx-node-alias">Linear Calibration</span>
+        <span class="synx-node-val">0.0 .. 14.0 pH</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">7.2 pH</span>
+  </div>
+
+  <div class="synx-canvas-node is-comparator">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M3.5,6 L8,9 L3.5,12 M9.5,7 L13,7 M9.5,10.5 L13,10.5" /></svg>
+        <span>COMPARATOR</span>
+      </div>
+      <span class="synx-node-status is-true">● BETWEEN</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">6.5 .. 8.5 pH</span>
+        <span class="synx-node-alias">In Safe Band</span>
+        <span class="synx-node-val">6.5 &lt;= pH &lt;= 8.5</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">TRUE</span>
+  </div>
+
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M10,1 L5,8.5 L8.5,8.5 L6,15 L11,7.5 L7.5,7.5 Z" /></svg>
+        <span>TRIGGER</span>
+      </div>
+      <span class="synx-node-status is-active">● 3000 ms</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">3000 ms Dwell</span>
+        <span class="synx-node-alias">Stability Filter</span>
+        <span class="synx-node-val">Continuous Stable</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">ENABLE</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● SET 1</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DO4 = 1</span>
+        <span class="synx-node-alias">Open Discharge</span>
+        <span class="synx-node-val">Permit Clean Effluent</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>

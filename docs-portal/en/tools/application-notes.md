@@ -22,41 +22,191 @@ An unattended substation cabinet houses a 3-phase RS-485 energy analyzer (`Slave
 
 ### 1.2 System Topology & Logic Graph Wiring
 
-```mermaid
-flowchart LR
-    subgraph Field["Substation Field Instruments"]
-        PM["3P Energy Meter (ID: 1, RS-485 #1)"]
-        TH["Temp/RH Sensor (ID: 2, RS-485 #1)"]
-        PT["4..20 mA Oil Probe (AI0)"]
-        ES["Panel Healthy Interlock (DI0)"]
-    end
+<div class="synx-node-chain" style="margin-bottom: 12px;">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● AI0</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">4-20mA Sensor</span>
+        <span class="synx-node-alias">Oil Probe 4..20mA</span>
+        <span class="synx-node-val">AI0 • INT32</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
 
-    subgraph Graph["SynaptiX Logic Graph (Ctrl+2)"]
-        MBR1["MB_READ #1 (ID:1 FC03)"]
-        MBR2["MB_READ #2 (ID:2 FC04)"]
-        SCL["SCALE (4..20 mA -> 0..150 °C)"]
-        CMP_HI["COMPARATOR (>= 85.0 °C)"]
-        TON1["TON (PT = 5000 ms)"]
-        GRD["GUARD (DI0 == 1)"]
-        ACT_ON["ACTION (Set DO0 = 1)"]
-        CMP_LO["COMPARATOR (<= 78.0 °C)"]
-        ACT_OFF["ACTION (Reset DO0 = 0)"]
-        PUB["MQTT_PUB (Cyclic 10 s, QoS 1)"]
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Raw ADC</span>
+  </div>
 
-        PM --> MBR1
-        TH --> MBR2
-        PT --> SCL
-        SCL -->|"VREG2 (OilTemp_C)"| CMP_HI --> TON1 --> GRD --> ACT_ON
-        ES --> GRD
-        SCL --> CMP_LO --> ACT_OFF
-        MBR1 -->|"VREG0 (kW), VREG1 (kWh)"| PUB
-        MBR2 -->|"VREG3 (Amb_C), VREG4 (RH)"| PUB
-        SCL -->|"VREG2 (OilTemp_C)"| PUB
-    end
+  <div class="synx-canvas-node is-comparator">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M3.5,6 L8,9 L3.5,12 M9.5,7 L13,7 M9.5,10.5 L13,10.5" /></svg>
+        <span>COMPARATOR</span>
+      </div>
+      <span class="synx-node-status is-true">● SCALE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Linear Scaling</span>
+        <span class="synx-node-alias">Span 0..150 °C</span>
+        <span class="synx-node-val">&gt;= 85.0 °C</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
 
-    ACT_ON --> FAN["Exhaust Fan & Beacon (DO0)"]
-    PUB -->|"TLS :8883 JSON"| CLOUD["Enterprise MQTTS Broker"]
-```
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">HOT</span>
+  </div>
+
+  <div class="synx-canvas-node is-timer">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1 A7,7 0 1 1 7.99,1 M8,4 L8,8 L11,10" /></svg>
+        <span>TON</span>
+      </div>
+      <span class="synx-node-status is-active">● 5000ms</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Debounce Dwell</span>
+        <span class="synx-node-alias">Noise Filter</span>
+        <span class="synx-node-val">PT = 5000 ms</span>
+      </div>
+      <div class="synx-node-pin is-out">Q ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">Q=1</span>
+  </div>
+
+  <div class="synx-canvas-node is-guard">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 L13.5,4 L13.5,9.5 Q13.5,13.5 8,15 Q2.5,13.5 2.5,9.5 L2.5,4 Z" /></svg>
+        <span>GUARD</span>
+      </div>
+      <span class="synx-node-status is-pass">● DI0==1</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Safety Interlock</span>
+        <span class="synx-node-alias">Panel Door Closed</span>
+        <span class="synx-node-val">DI0 == 1</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">PERMIT</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● FAN ON</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Exhaust Fan</span>
+        <span class="synx-node-alias">Relay DO0</span>
+        <span class="synx-node-val">DO0 = 1</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
+
+<div class="synx-node-chain" style="margin-top: 12px;">
+  <div class="synx-canvas-node is-fieldbus">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,4 L6,4 L6,8 L2,8 Z M10,4 L14,4 L14,8 L10,8 Z M6,6 L10,6" /></svg>
+        <span>MB_READ</span>
+      </div>
+      <span class="synx-node-status is-live">● RS-485 #1</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Modbus RTU Master</span>
+        <span class="synx-node-alias">Power &amp; Climate Meters</span>
+        <span class="synx-node-val">9600-8-N-1</span>
+      </div>
+      <div class="synx-node-pin is-out">Data ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">5 Tags</span>
+  </div>
+
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M10,1 L5,8.5 L8.5,8.5 L6,15 L11,7.5 L7.5,7.5 Z" /></svg>
+        <span>MQTT_PUB</span>
+      </div>
+      <span class="synx-node-status is-rise">● 10s • QoS 1</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Payload Assembly</span>
+        <span class="synx-node-alias">JSON Telemetry</span>
+        <span class="synx-node-val">Pack 5 Variables</span>
+      </div>
+      <div class="synx-node-pin is-out">Done ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">MQTTS</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● PORT 8883</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Cloud Publish</span>
+        <span class="synx-node-alias">TLS Encryption</span>
+        <span class="synx-node-val">Enterprise Cloud</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 ### 1.3 Tag Catalog Allocation (`Ctrl+3`)
 
@@ -110,24 +260,143 @@ In an e-commerce parcel sorting station, an overhead barcode scanner sends parce
 
 ### 2.2 System Topology & Logic Graph Wiring
 
-```mermaid
-flowchart LR
-    WMS["Warehouse WMS Broker"] -->|"JSON QoS 1 (wms/station04/sort)"| SUB["MQTT_SUB (FIFO = 16, Atomic)"]
+<div class="synx-node-chain" style="margin-bottom: 12px;">
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M10,1 L5,8.5 L8.5,8.5 L6,15 L11,7.5 L7.5,7.5 Z" /></svg>
+        <span>MQTT_SUB</span>
+      </div>
+      <span class="synx-node-status is-rise">● FIFO=16</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Sorting Command</span>
+        <span class="synx-node-alias">WMS Sort Topic</span>
+        <span class="synx-node-val">FIFO = 16 Packets</span>
+      </div>
+      <div class="synx-node-pin is-out">Valid ●</div>
+    </div>
+  </div>
 
-    subgraph Graph["SynaptiX Logic Graph (Ctrl+2)"]
-        SUB -->|"Pin 1: chute -> VREG0"| MBW["MB_WRITE (Channel-Indexed, Excl = ON)"]
-        SUB -->|"Pin 2: cmd -> VREG1"| MBW
-        SUB -->|"Pin 3: color -> VREG2"| MBW
-        SUB -->|"Valid Pulse (VFLAG0)"| MBW
-        SUB -->|"Valid Pulse (VFLAG0)"| TP1["TP Pulse Timer (PT = 4000 ms)"]
-        SUB -->|"Err Pulse (VFLAG1)"| ACT_ERR["ACTION (Set DO2 Fault Lamp)"]
-        TP1 -->|"Q (VFLAG2)"| DW_BUZ["DIRECT_WRITE (DO0 Chute Active Lamp)"]
-        TP1 -->|"Falling Edge (Q == 0)"| ACT_CLR["ACTION (Set VREG1 = 0 Clear Chute)"]
-    end
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Chute Idx</span>
+  </div>
 
-    MBW -->|"RS-485 #1 (115200 8N1)"| BAR["18-Chute Sort-to-Light Bar (ID: 1)"]
-    DW_BUZ --> LAMP["Tower Active Indicator (DO0)"]
-```
+  <div class="synx-canvas-node is-direct">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,4 L6,4 L6,8 L2,8 Z M10,4 L14,4 L14,8 L10,8 Z M6,6 L10,6" /></svg>
+        <span>MB_WRITE</span>
+      </div>
+      <span class="synx-node-status is-active">● EXCLUSIVE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">RS-485 Exclusive</span>
+        <span class="synx-node-alias">Target Chute 1..18</span>
+        <span class="synx-node-val">Auto-Off Prior</span>
+      </div>
+      <div class="synx-node-pin is-out">Done ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">LIGHT</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● INDICATOR</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Sort-to-Light</span>
+        <span class="synx-node-alias">Operator Guidance</span>
+        <span class="synx-node-val">Green/Amber/Blue</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
+
+<div class="synx-node-chain" style="margin-top: 12px;">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● VALID</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">New Parcel Arrived</span>
+        <span class="synx-node-alias">Strobe Edge</span>
+        <span class="synx-node-val">MQTT_SUB.Valid</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">PULSE</span>
+  </div>
+
+  <div class="synx-canvas-node is-timer">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1 A7,7 0 1 1 7.99,1 M8,4 L8,8 L11,10" /></svg>
+        <span>TP</span>
+      </div>
+      <span class="synx-node-status is-active">● 4000ms</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Hold Active Pulse</span>
+        <span class="synx-node-alias">Beacon Output DO0</span>
+        <span class="synx-node-val">PT = 4000 ms</span>
+      </div>
+      <div class="synx-node-pin is-out">Q ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Timeout</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● AUTO-OFF</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Auto Extinguish</span>
+        <span class="synx-node-alias">4s Elapsed Q = 0</span>
+        <span class="synx-node-val">Clear Chute Display</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 ### 2.3 Tag Catalog Allocation (`Ctrl+3`)
 

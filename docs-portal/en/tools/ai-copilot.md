@@ -29,15 +29,98 @@ Unlike generic web chatbots that have no visibility into your hardware I/O layou
 
 ## 2. What AI Copilot Can Synthesize
 
-```mermaid
-flowchart LR
-    Prompt["Natural-Language Engineering Spec"] --> AI["SynaptiX AI Copilot (Ctrl+Space)"]
-    AI --> Tags["Typed Tag Allocations & Aliases (BOOL / INT32 / REAL)"]
-    AI --> Core["4-Stage Rules (INPUT -> TRIGGER -> COMPARATOR -> GUARD -> ACTION)"]
-    AI --> FB["Stateful Blocks (TON, TOF, TP, CYCLE_TIMER, CTU, CTD, SCALE)"]
-    AI --> IIoT["Fieldbus & Cloud (MB_READ, MB_WRITE, DIRECT_WRITE, MQTT_PUB, MQTT_SUB)"]
-    Tags & Core & FB & IIoT --> Preview["Interactive Proposal Preview (Accept / Discard / Ctrl+Z)"]
-```
+<div class="synx-node-chain" style="margin-bottom: 12px;">
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>STEP 1</span>
+      </div>
+      <span class="synx-node-status">PROMPT</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Natural Spec</span>
+        <span class="synx-node-alias">Functional Prompt</span>
+        <span class="synx-node-val">English / Vietnamese</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Infer</span>
+  </div>
+
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M3.5,6 L8,9 L3.5,12 M9.5,7 L13,7 M9.5,10.5 L13,10.5" /></svg>
+        <span>STEP 2</span>
+      </div>
+      <span class="synx-node-status">REASONING</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">AI Inference</span>
+        <span class="synx-node-alias">Context &amp; Budget</span>
+        <span class="synx-node-val">Hardware Target Limits</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Generate</span>
+  </div>
+
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 L13.5,4 L13.5,9.5 Q13.5,13.5 8,15 Q2.5,13.5 2.5,9.5 L2.5,4 Z" /></svg>
+        <span>STEP 3</span>
+      </div>
+      <span class="synx-node-status">SYNTHESIS</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Project Synthesis</span>
+        <span class="synx-node-alias">FBD Logic Network</span>
+        <span class="synx-node-val">Tags • Rules • Blocks</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Preview</span>
+  </div>
+
+  <div class="synx-canvas-node is-step is-done">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>STEP 4</span>
+      </div>
+      <span class="synx-node-status is-active">● DIFF VIEW</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Proposal Preview</span>
+        <span class="synx-node-alias">Diff Inspection</span>
+        <span class="synx-node-val">Apply • Ctrl+Z Undo</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 | Synthesis Domain | Generated Artifacts |
 | :--- | :--- |

@@ -39,22 +39,9 @@ The **`TOF`** (**Timer Off-Delay**) block energizes its boolean output `Q` (`1`)
 
 ---
 
-## 4. State Machine / Timing Diagram
+## 4. Off-Delay Rules & Waveform Phases
 
-The state diagram below captures immediate turn-on (`In = 1`), falling-edge post-run hold (`In: 1 → 0`), mid-hold re-assertion (`In: 0 → 1` canceling countdown cleanly), and final turn-off expiration:
-
-```mermaid
-stateDiagram-v2
-    [*] --> IdleOff : "In == 0 (Initial)"
-    IdleOff : "IDLE OFF (Q = 0, ET = 0 ms)"
-    ActiveHold : "INPUT ACTIVE (Q = 1, ET = 0 ms)"
-    OffTiming : "OFF-DELAY HOLD (Q = 1, 0 < ET < PresetMs)"
-
-    IdleOff --> ActiveHold : "In: 0 -> 1 (Immediate Q = 1)"
-    ActiveHold --> OffTiming : "In: 1 -> 0 (Start Off-Delay Timer, Keep Q = 1)"
-    OffTiming --> ActiveHold : "In: 0 -> 1 before PresetMs (Cancel Timer, Reset ET = 0, Keep Q = 1)"
-    OffTiming --> IdleOff : "ET >= PresetMs while In == 0 (Drop Q = 0)"
-```
+The table below details immediate turn-on (`In = 1`), falling-edge post-run hold (`In: 1 → 0`), mid-hold re-assertion (`In: 0 → 1` canceling countdown cleanly), and final turn-off expiration:
 
 | Waveform Phase | Input `In` | Elapsed Off-Time `ET` | Output `Q` | Engineering State |
 | :--- | :--- | :--- | :--- | :--- |
@@ -104,12 +91,71 @@ When a high-speed CNC spindle inverter (`DI1` run-feedback contact) operates, it
    - Toggle `DI1` `0 → 1` mid-countdown: `ET` resets to `0` and `DO1` stays `1` without flickering.
    - Toggle `DI1` `1 → 0` and let `PresetMs` elapse completely: `DO1` drops cleanly to `0`.
 
-```mermaid
-flowchart LR
-    IN_SPD["INPUT: DI1<br/>(Spindle VFD Run Status)"]
-    TOF_FAN["TOF Timer<br/>(Preset = 2 min · OutputTag = DO1)"]
-    ACT_LOG["ACTION: LOG_EVENT<br/>(Optional Cycle Audit)"]
+<div class="synx-node-chain">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● LIVE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DI1 • BOOL</span>
+        <span class="synx-node-alias">Spindle Running</span>
+        <span class="synx-node-val">VFD Run Feedback</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
 
-    IN_SPD -- "Out -> In" --> TOF_FAN
-    TOF_FAN -- "Q -> In" --> ACT_LOG
-```
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">TRUE</span>
+  </div>
+
+  <div class="synx-canvas-node is-timer">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 A6.5,6.5 0 1 1 1.5,8 M8,1.5 L8,8 L11,10" /></svg>
+        <span>TOF TIMER</span>
+      </div>
+      <span class="synx-node-status is-active">● 120,000 ms</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">PT = 2 min • DO1</span>
+        <span class="synx-node-alias">Post-Stop Cooling</span>
+        <span class="synx-node-val">Maintain Fan 2 Min</span>
+      </div>
+      <div class="synx-node-pin is-out">Q ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">DO1 = 1</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● COMMIT</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DO1 • Exhaust Fan</span>
+        <span class="synx-node-alias">Cooling Contactor</span>
+        <span class="synx-node-val">Auto Stop After 2 Min</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>

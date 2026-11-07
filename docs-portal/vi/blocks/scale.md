@@ -76,17 +76,11 @@ $$\text{Gain} = \text{round}\!\left(\frac{Y_2 - Y_1}{X_2 - X_1},\; 6\right), \qq
 
 ---
 
-## 4. Sơ đồ Chuỗi Xử lý Chuẩn hóa Tín hiệu
+## 4. Quy tắc Tính toán & Kẹp Biên An toàn
 
-```mermaid
-flowchart LR
-    RAW["Tín hiệu Thô x<br/>(AI0 / VREG INT32)"] --> LIN["Phương trình Tuyến tính<br/>y_raw = Gain · x + Offset"]
-    LIN --> CHK{"IsClamped == true?"}
-    CHK -- "Có" --> SAT["Bộ Khóa Biên An toàn<br/>Clamp(y_raw, ClampMin, ClampMax)"]
-    CHK -- "Không" --> PASS["Giữ nguyên y_raw"]
-    SAT --> OUT["OutputTag (FLOAT32)<br/>&amp; Huy hiệu Canvas (6.4 bar · 40%)"]
-    PASS --> OUT
-```
+Khối `SCALE` tính toán giá trị ngõ ra theo 2 bước tức thời trong vòng quét:
+1. **Quy đổi tuyến tính:** $y = \text{Gain} \cdot x + \text{Offset}$ (với $x$ là giá trị thô từ ngõ vào `InputTag` hoặc chân `In`).
+2. **Kẹp biên an toàn (`IsClamped = true`):** Nếu giá trị tính ra vượt ra ngoài khoảng `[ClampMin .. ClampMax]`, ngõ ra tự động được kẹp về giá trị biên gần nhất, bảo vệ hệ thống khỏi hiện tượng cảm biến đứt dây sinh ra số âm hoặc vọt lố.
 
 ---
 
@@ -105,13 +99,98 @@ flowchart LR
 
 **Bài toán:** Cảm biến áp suất `4–20 mA` đấu qua điện trở chuẩn `500 Ω` vào kênh `AI0` (`2000 mV` ứng với `0 bar`, `10000 mV` ứng với `16 bar`). Yêu cầu chặn nhiễu âm khi đứt cáp về `0.0 bar`, lưu áp suất thực vào `VREG0_PipeBar` (`REAL`), đẩy telemetry và ngắt rơ-le bơm khi áp suất vượt `12.5 bar`.
 
-```mermaid
-flowchart LR
-    AI0["INPUT: AI0_RawMv<br/>(2000..10000 mV)"] -- "IN" --> SCL["SCALE: Áp suất Đường ống<br/>Gain = 0.002 | Offset = -4.0<br/>Kẹp biên: 0.0 .. 16.0 bar"]
-    SCL -- "OUT (VREG0_PipeBar)" --> CMP["COMPARATOR: GT (&gt; 12.5 bar)"]
-    SCL -- "OUT (VREG0_PipeBar)" --> PUB["MQTT_PUB: synaptix/pump1/pressure"]
-    CMP -- "Out" --> ACT["DIRECT_WRITE: DO0_PumpRelay (OFF)"]
-```
+<div class="synx-node-chain" style="margin-bottom: 12px;">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● AI0</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Cảm Biến 4-20mA</span>
+        <span class="synx-node-alias">Áp Suất Thô AI0</span>
+        <span class="synx-node-val">2000..10000 mV</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Raw ADC</span>
+  </div>
+
+  <div class="synx-canvas-node is-timer">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,13 L5,13 L5,9.5 L8,9.5 L8,6 L11,6 L11,3 L14,3" /></svg>
+        <span>SCALE</span>
+      </div>
+      <span class="synx-node-status is-active">● CALIBRATED</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Quy Đổi Áp Suất</span>
+        <span class="synx-node-alias">Thanh Ghi VREG0</span>
+        <span class="synx-node-val">0.0 .. 16.0 bar</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">13.1 bar</span>
+  </div>
+
+  <div class="synx-canvas-node is-comparator">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M3.5,6 L8,9 L3.5,12 M9.5,7 L13,7 M9.5,10.5 L13,10.5" /></svg>
+        <span>COMPARATOR</span>
+      </div>
+      <span class="synx-node-status is-true">● TRIP HIGH</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Bảo Vệ Quá Áp</span>
+        <span class="synx-node-alias">Ngưỡng Giới Hạn</span>
+        <span class="synx-node-val">&gt; 12.5 bar</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">TRIP</span>
+  </div>
+
+  <div class="synx-canvas-node is-direct">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>DIRECT_WRITE</span>
+      </div>
+      <span class="synx-node-status is-active">● SHUTDOWN</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Ngắt Rơ-le Bơm</span>
+        <span class="synx-node-alias">Dừng Khẩn Cấp</span>
+        <span class="synx-node-val">DO0 = 0</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 **Các bước cấu hình:**
 1. Tạo biến `VREG0_PipeBar` trong [Danh mục Biến — Tag Catalog](/vi/workspaces/tag-catalog-tab) với kiểu dữ liệu **`REAL` (`FLOAT32`)**.

@@ -49,31 +49,11 @@ Direct guard chaining (`GUARD → GUARD`) and backward loops (`GUARD → TRIGGER
 
 ---
 
-## 4. State Machine / Timing Diagram
+## 4. Real-Time Interlock Gating Rules
 
-The flowchart below illustrates synchronous single-scan gating inside `GUARD` when an upstream execution pulse arrives:
-
-```mermaid
-flowchart LR
-    PULSE["Upstream Event Arrives<br/>(In = Pulse)"]
-    READ["Read Latched GuardTag<br/>from Process Image"]
-    POL{"Check Negate<br/>Polarity"}
-
-    NORM{"GuardTag != 0 ?<br/>(1 / ON)"}
-    INV{"GuardTag == 0 ?<br/>(NOT · 0 / OFF)"}
-
-    PASS["GUARD PASSED<br/>Propagate Pulse to Out<br/>(Same Scan Cycle)"]
-    BLOCK["GUARD BLOCKED<br/>Suppress Pulse (Out = Idle)"]
-
-    PULSE --> READ --> POL
-    POL -- "Negate == false" --> NORM
-    POL -- "Negate == true" --> INV
-
-    NORM -- "Yes" --> PASS
-    NORM -- "No" --> BLOCK
-    INV -- "Yes" --> PASS
-    INV -- "No" --> BLOCK
-```
+During each controller scan cycle, the `GUARD` block evaluates safety conditions synchronously:
+- **Normal Gating (`Negate = false`):** Pulses at pin `In` only pass to `Out` if `GuardTag == 1` (e.g., safety guard is closed `SafetyDoorOk == 1`). If `GuardTag == 0`, the pulse is immediately suppressed.
+- **Inverted Gating (`Negate = true`):** Pulses only pass if `GuardTag == 0` (e.g., no fault active `FaultFlag == 0`). If a fault exists (`GuardTag == 1`), the actuation pulse is blocked.
 
 ---
 
@@ -114,21 +94,164 @@ An operator start pushbutton on `DI0` triggers the downward stroke solenoid (`DO
    - Set `DI1 = 1` (curtain clear), toggle `DI0` `0 → 1` for `50 ms`: `GUARD` reports **PASSED** and `DO0` energizes to `1`.
    - Toggle `DI1` `1 → 0`: Rung 2 immediately trips `DO0` back to `0` on the very first scan cycle.
 
-```mermaid
-flowchart LR
-    IN_START["INPUT: DI0<br/>(Cycle Start Button)"]
-    TRG_START["TRIGGER: ON_RISE<br/>(ForMs = 50 ms)"]
-    GRD_CURTAIN["GUARD: DI1<br/>(Light Curtain == 1)"]
-    ACT_DOWN["ACTION: SET_TAG<br/>(DO0 = 1)"]
+<div class="synx-node-chain" style="margin-bottom: 12px;">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● LIVE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DI0 • BOOL</span>
+        <span class="synx-node-alias">Start Pushbutton</span>
+        <span class="synx-node-val">Press Cycle Command</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
 
-    IN_CURTAIN["INPUT: DI1<br/>(Light Curtain OSSD)"]
-    TRG_BREAK["TRIGGER: ON_FALL<br/>(ForMs = 0 ms)"]
-    ACT_STOP["ACTION: SET_TAG<br/>(DO0 = 0)"]
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">EDGE</span>
+  </div>
 
-    IN_START -- "Out -> In" --> TRG_START
-    TRG_START -- "Out -> In" --> GRD_CURTAIN
-    GRD_CURTAIN -- "Out -> In" --> ACT_DOWN
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M10,1 L5,8.5 L8.5,8.5 L6,15 L11,7.5 L7.5,7.5 Z" /></svg>
+        <span>TRIGGER</span>
+      </div>
+      <span class="synx-node-status is-rise">● ON_RISE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">50 ms Dwell</span>
+        <span class="synx-node-alias">Debounce Filter</span>
+        <span class="synx-node-val">Steady Operator Press</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
 
-    IN_CURTAIN -- "Out -> In" --> TRG_BREAK
-    TRG_BREAK -- "Out -> In" --> ACT_STOP
-```
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">TRUE</span>
+  </div>
+
+  <div class="synx-canvas-node is-guard">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 L13.5,4 L13.5,9.5 Q13.5,13.5 8,15 Q2.5,13.5 2.5,9.5 L2.5,4 Z" /></svg>
+        <span>GUARD</span>
+      </div>
+      <span class="synx-node-status is-pass">● PASS</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DI1 == 1</span>
+        <span class="synx-node-alias">Safety Light Curtain</span>
+        <span class="synx-node-val">Optical Path Clear</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">ENABLE</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● SET 1</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DO0 = 1</span>
+        <span class="synx-node-alias">Advance Ram</span>
+        <span class="synx-node-val">Energize Hydraulic Valve</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
+
+<div class="synx-node-chain" style="margin-top: 12px;">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● OSSD</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DI1 • OSSD</span>
+        <span class="synx-node-alias">Curtain Receiver</span>
+        <span class="synx-node-val">Beam Interrupted (1 → 0)</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">EDGE</span>
+  </div>
+
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M10,1 L5,8.5 L8.5,8.5 L6,15 L11,7.5 L7.5,7.5 Z" /></svg>
+        <span>TRIGGER</span>
+      </div>
+      <span class="synx-node-status is-rise">● ON_FALL</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">0 ms Instant</span>
+        <span class="synx-node-alias">Immediate Trip</span>
+        <span class="synx-node-val">Hard Fall Edge</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">ABORT</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-pass">● SET 0</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DO0 = 0</span>
+        <span class="synx-node-alias">Emergency Cutout</span>
+        <span class="synx-node-val">Dump Hydraulic Pressure</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>

@@ -32,12 +32,98 @@ The **Live Watch** console combines a **Controller Health Telemetry Strip**, a *
 
 Unlike legacy polling tools that block UI threads or waste serial bandwidth when backgrounded, **SynaptiX IDE** activates live hardware streaming strictly on demand when **Live Watch** (`Ctrl+7`) or **Online Live Debug** (`F8`) is active:
 
-```mermaid
-flowchart LR
-    HW["SynaptiX Runtime (Hardware Scan)"] -->|"Event-Driven Channel Stream"| STORE["IRuntimeStateStore (Zero-Lock Snapshot)"]
-    STORE -->|"50 ms (20 FPS) Coalesced UI Dispatch"| UI["Live Watch Grid, LEDs & Sparklines"]
-    STORE -->|"Health & Quality Monitor"| Q["GOOD vs STALE Visual Truth State"]
-```
+<div class="synx-node-chain" style="margin-bottom: 12px;">
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>SOURCE 10ms</span>
+      </div>
+      <span class="synx-node-status is-live">● 100 Hz</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">SynaptiX Runtime</span>
+        <span class="synx-node-alias">Hardware Scan Loop</span>
+        <span class="synx-node-val">Hard Real-Time</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Push</span>
+  </div>
+
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M3.5,6 L8,9 L3.5,12 M9.5,7 L13,7 M9.5,10.5 L13,10.5" /></svg>
+        <span>BUFFER</span>
+      </div>
+      <span class="synx-node-status">ATOMIC</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">IRuntimeStateStore</span>
+        <span class="synx-node-alias">Lock-Free Cache</span>
+        <span class="synx-node-val">Snapshots 20 FPS</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Render</span>
+  </div>
+
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>PRESENTATION</span>
+      </div>
+      <span class="synx-node-status">20 FPS</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Live Watch UI</span>
+        <span class="synx-node-alias">WPF DataGrid</span>
+        <span class="synx-node-val">Sparkline Charts</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Truth</span>
+  </div>
+
+  <div class="synx-canvas-node is-step is-done">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 L13.5,4 L13.5,9.5 Q13.5,13.5 8,15 Q2.5,13.5 2.5,9.5 L2.5,4 Z" /></svg>
+        <span>INTEGRITY</span>
+      </div>
+      <span class="synx-node-status is-active">● VERIFIED</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Visual Truth</span>
+        <span class="synx-node-alias">User Safeguard</span>
+        <span class="synx-node-val">GOOD vs STALE</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 ### 2.2. Controller Health Strip & Toolbar Controls Reference
 

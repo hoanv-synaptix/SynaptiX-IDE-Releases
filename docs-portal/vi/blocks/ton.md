@@ -39,22 +39,9 @@ Khối **`TON`** (**Timer On-Delay — Hẹn giờ Trễ Đóng**) trì hoãn vi
 
 ---
 
-## 4. Máy Trạng thái / Giản đồ Thời gian
+## 4. Quy tắc Định thời & Giản đồ Pha Tín hiệu
 
-Sơ đồ trạng thái và bảng pha xung dưới đây minh họa rõ sự khác biệt giữa **xung chập chờn ngắn** (tụt về `0` trước `PresetMs` nên `Q` giữ nguyên `0`) và **tín hiệu duy trì hợp lệ** (đạt `ET >= PresetMs` để đóng `Q = 1` cho tới khi `In` ngắt):
-
-```mermaid
-stateDiagram-v2
-    [*] --> Idle : "In == 0"
-    Idle : "NGHỈ (Q = 0, ET = 0 ms)"
-    Timing : "ĐANG ĐẾM TRỄ ĐÓNG (Q = 0, 0 < ET < PresetMs)"
-    DoneOn : "ĐÃ ĐÓNG NGÕ RA (Q = 1, ET = PresetMs)"
-
-    Idle --> Timing : "In: 0 -> 1 (Khởi động Bộ đếm Đơn điệu)"
-    Timing --> Idle : "In: 1 -> 0 trước PresetMs (Xóa ngay ET = 0, Q = 0)"
-    Timing --> DoneOn : "ET >= PresetMs khi In == 1 (Đóng Q = 1)"
-    DoneOn --> Idle : "In: 1 -> 0 (Ngắt tức thì Q = 0, ET = 0)"
-```
+Bảng dưới đây minh họa rõ sự khác biệt giữa **xung chập chờn ngắn** (tụt về `0` trước `PresetMs` nên `Q` giữ nguyên `0`) và **tín hiệu duy trì hợp lệ** (đạt `ET >= PresetMs` để đóng `Q = 1` cho tới khi `In` ngắt):
 
 | Giai đoạn Tín hiệu | Ngõ vào `In` | Thời gian Đếm `ET` | Ngõ ra `Q` | Nhãn Trạng thái trên Canvas |
 | :--- | :--- | :--- | :--- | :--- |
@@ -101,12 +88,71 @@ Trong hố thu nước thải ngầm, dòng nước chảy mạnh làm phao báo
 4. Kéo thêm dây từ `TON.Q` sang khối **[`MQTT_PUB`](/vi/blocks/mqtt-pub)** (`Topic = "nhamay/hothu/bom_chay"`) để gửi bản tin báo trạng thái bơm khởi động lên phòng điều hành trung tâm.
 5. Nhấn `F5` kiểm thử: bật `DI0` lên `1` trong `2 giây` rồi tắt về `0` — xác nhận `ET` xóa ngay về `0 ms` và `DO0` không đóng. Tiếp theo bật giữ `DI0 = 1` đủ `5 giây` — xác nhận nhãn `Q = ON` bật sáng và bơm `DO0` vận hành ổn định.
 
-```mermaid
-flowchart LR
-    IN_FLT["INPUT: DI0<br/>(Phao Mức Cao Hố Thu)"]
-    TON_DB["TON Timer<br/>(Preset = 5 s · OutputTag = DO0)"]
-    MQTT_NTF["MQTT_PUB<br/>(nhamay/hothu/bom_chay)"]
+<div class="synx-node-chain">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● LIVE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DI0 • BOOL</span>
+        <span class="synx-node-alias">Phao Mức Cao</span>
+        <span class="synx-node-val">Bồn Nước Đầy</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
 
-    IN_FLT -- "Out -> In" --> TON_DB
-    TON_DB -- "Q -> Trig" --> MQTT_NTF
-```
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">TRUE</span>
+  </div>
+
+  <div class="synx-canvas-node is-timer">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 A6.5,6.5 0 1 1 1.5,8 M8,1.5 L8,8 L11,10" /></svg>
+        <span>TON TIMER</span>
+      </div>
+      <span class="synx-node-status is-active">● 5000 ms</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">PT = 5 s • DO0</span>
+        <span class="synx-node-alias">Lọc Trễ Chống Sóng</span>
+        <span class="synx-node-val">Q = ON sau 5s</span>
+      </div>
+      <div class="synx-node-pin is-out">Q ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">PULSE</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,14 L8,8 M5,10 A4,4 0 0 1 11,10 M3,7.5 A7,7 0 0 1 13,7.5 M1.5,5 A9.5,9.5 0 0 1 14.5,5" /></svg>
+        <span>MQTT_PUB</span>
+      </div>
+      <span class="synx-node-status is-active">● TELEMETRY</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● Trig</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Topic QoS 1</span>
+        <span class="synx-node-alias">Báo Bơm Khởi Động</span>
+        <span class="synx-node-val">Đẩy Lên Scada Cloud</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>

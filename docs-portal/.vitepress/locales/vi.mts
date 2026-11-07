@@ -1,12 +1,12 @@
 import type { DefaultTheme, LocaleSpecificConfig } from 'vitepress'
 
 export const viConfig: LocaleSpecificConfig<DefaultTheme.Config> = {
-  title: 'Tài liệu Kỹ thuật SynaptiX IDE',
-  description: 'Từ điển Kỹ thuật & Tài liệu Tích hợp Hệ thống cho Môi trường Kỹ thuật SynaptiX IDE',
+  title: 'Hướng dẫn Lập trình SynaptiX',
+  description: 'Tài liệu Kỹ thuật & Hướng dẫn Lập trình cho Hệ sinh thái Tự động hóa SynaptiX',
   themeConfig: {
-    siteTitle: 'SynaptiX IDE Wiki',
+    siteTitle: 'SynaptiX Programming Guide',
     nav: [
-      { text: 'Trang chủ Wiki', link: '/vi/' },
+      { text: 'Trang chủ', link: '/vi/' },
       { text: 'Bắt đầu', link: '/vi/getting-started/installation', activeMatch: '/vi/(concepts|getting-started)/' },
       { text: 'Không gian Làm việc', link: '/vi/workspaces/device-tab', activeMatch: '/vi/workspaces/' },
       { text: 'Từ điển Khối hàm', link: '/vi/blocks/overview', activeMatch: '/vi/blocks/' },
@@ -130,7 +130,7 @@ export const viConfig: LocaleSpecificConfig<DefaultTheme.Config> = {
     darkModeSwitchLabel: 'Giao diện',
     lightModeSwitchTitle: 'Chuyển sang giao diện sáng',
     darkModeSwitchTitle: 'Chuyển sang giao diện tối công nghiệp',
-    sidebarMenuLabel: 'Cây danh mục Wiki',
+    sidebarMenuLabel: 'Cây danh mục Tài liệu',
     returnToTopLabel: 'Lên đầu trang',
     langMenuLabel: 'Ngôn ngữ',
     footer: {

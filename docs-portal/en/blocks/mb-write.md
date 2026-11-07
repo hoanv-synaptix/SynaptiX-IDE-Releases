@@ -76,17 +76,13 @@ The **`MB_WRITE`** (**Modbus RTU Master Write**) function block dispatches non-b
 
 ---
 
-## 4. State Machine & Transaction Sequence Diagram
+## 4. Trigger Dispatch & Confirmation Rules
 
-```mermaid
-stateDiagram-v2
-    [*] --> Idle : "Ready (Busy = 0, Done = 0)"
-    Idle --> Transmitting : "Trig ↑ or COV Δ ≥ Deadband or Cyclic Tick [Busy ← 1]"
-    Transmitting --> Completed : "Valid Echo PDU + CRC-16 OK [Busy ← 0, Done ← 1 (1 scan), Error ← 0]"
-    Transmitting --> Faulted : "TimeoutMs Expired or Exception PDU [Busy ← 0, Error ← 1, ErrCode ← 1..4]"
-    Completed --> Idle : "Next Scan [Done ← 0]"
-    Faulted --> Transmitting : "Next Trigger Event [Busy ← 1]"
-```
+The `MB_WRITE` block executes commanded writes to external slave devices with deterministic handshaking:
+- **Trigger Conditions:** Dispatched via a rising edge on `Trig`, cyclic timer ticks (`CyclicIntervalMs`), or change-of-value triggers (`Δ ≥ Deadband`).
+- **Busy Guard (`Busy = 1`):** While the frame is in transit on the serial wire, pin `Busy` asserts `1` to prevent request collisions.
+- **Success Handshake (`Done = 1`):** Upon receiving a valid echo reply with matching CRC, pin `Done` pulses `1` for one scan cycle and clears `Busy`.
+- **Fault Handling (`Error = 1`):** If the slave fails to respond within `TimeoutMs` or returns an exception PDU, pin `Error` asserts with diagnostic `ErrCode (1..4)`.
 
 ---
 
@@ -104,15 +100,74 @@ stateDiagram-v2
 
 **Objective:** Receive a parcel sorting JSON command `{"grid": 4, "color": 2}` from the warehouse management broker via [`MQTT_SUB`](/blocks/mqtt-sub) and immediately illuminate Chute `#4` on an RS-485 Sort-to-Light controller (`SlaveId = 3`) while automatically extinguishing the previous chute.
 
-```mermaid
-flowchart LR
-    SUB["MQTT_SUB: synaptix/sorter1/cmd"]
-    W["MB_WRITE: Sort-to-Light Bank<br/>ID: 3 | ChannelIndexed (CH 1..9, Exclusive)"]
-    SUB -- "Valid (0 → 1)" --> W
-    SUB -- "grid (INT16)" --> W
-    SUB -- "color (INT16)" --> W
-    W -- "Error" --> FAULT["DIRECT_WRITE: DO3_BusFaultBeacon"]
-```
+<div class="synx-node-chain">
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,14 L8,8 M5,10 A4,4 0 0 1 11,10 M3,7.5 A7,7 0 0 1 13,7.5 M1.5,5 A9.5,9.5 0 0 1 14.5,5" /></svg>
+        <span>MQTT_SUB</span>
+      </div>
+      <span class="synx-node-status is-active">● FIFO</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">sorter1/cmd</span>
+        <span class="synx-node-alias">Inbound Order</span>
+        <span class="synx-node-val">{grid: 4, color: 2}</span>
+      </div>
+      <div class="synx-node-pin is-out">Valid ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">TRIG</span>
+  </div>
+
+  <div class="synx-canvas-node is-direct">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,5 L14,5 M14,5 L10,2 M14,5 L10,8 M14,11 L2,11 M2,11 L6,8 M2,11 L6,14" /></svg>
+        <span>MB_WRITE</span>
+      </div>
+      <span class="synx-node-status is-active">● EXCLUSIVE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● Trig</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">RS-485 #1 • Slave 3</span>
+        <span class="synx-node-alias">Channel Indexed</span>
+        <span class="synx-node-val">Channel 4 • Color 2</span>
+      </div>
+      <div class="synx-node-pin is-out">Done ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">CHUTE_4</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● LIT</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Sort-to-Light</span>
+        <span class="synx-node-alias">Illuminate Chute #4</span>
+        <span class="synx-node-val">Extinguish Previous Chute</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 **Configuration Steps:**
 1. Configure [`MQTT_SUB`](/blocks/mqtt-sub) on topic `synaptix/sorter1/cmd` (`QueueMode = FIFO`) with dynamic pins `grid` (`INT16`) and `color` (`INT16`).

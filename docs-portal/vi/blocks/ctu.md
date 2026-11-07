@@ -55,19 +55,9 @@ Theo chuẩn [Kiến trúc Bộ nhớ Tag & Kiểu Dữ liệu](/vi/concepts/dat
 
 ---
 
-## 4. Máy Trạng thái & Biểu đồ Thời gian
+## 4. Minh họa Chu trình Đếm theo Chu kỳ Quét (`PV = 3`)
 
-```mermaid
-stateDiagram-v2
-    [*] --> Counting : "Khởi động / R = 1 (CV ← 0, Q ← 0)"
-    Counting --> Counting : "CU ↑ và (CV + 1) < PV [CV ← CV + 1, Q = 0]"
-    Counting --> QuotaReached : "CU ↑ và (CV + 1) ≥ PV [CV ← CV + 1, Q = 1]"
-    QuotaReached --> QuotaReached : "CU ↑ và R = 0 [CV ← CV + 1, Q = 1]"
-    QuotaReached --> Counting : "R = 1 [CV ← 0, Q ← 0]"
-    Counting --> Counting : "R = 1 [CV ← 0, Q ← 0]"
-```
-
-### Minh họa Chu trình Đếm theo Chu kỳ Quét (`PV = 3`)
+Bảng dưới đây minh họa chu trình đếm thực tế khi đếm 3 sản phẩm và nhận xung xóa `R` từ cơ cấu chấp hành:
 
 | Sự kiện Chu kỳ Quét | Chân `CU` | Chân `R` | Thanh ghi `CV` | Ngõ ra `Q` (`CV ≥ 3`) | Nhãn Trạng thái trên Canvas |
 | :--- | :---: | :---: | :---: | :---: | :--- |
@@ -98,13 +88,143 @@ stateDiagram-v2
 
 **Bài toán:** Đếm số lượng chai đi qua cảm biến quang (`DI0`) trên băng tải chiết rót. Ngay khi đủ `24` chai vào thùng, kích hoạt van điện từ gạt thùng (`DO0`) và đẩy bản tin hoàn tất mẻ sản xuất lên Broker qua khối [`MQTT_PUB`](/vi/blocks/mqtt-pub), sau đó xóa bộ đếm về `0` khi công tắc hành trình (`DI1`) xác nhận thùng mới đã vào vị trí.
 
-```mermaid
-flowchart LR
-    DI0["INPUT: DI0_PhotoSensor"] -- "CU (0 → 1)" --> CTU1["CTU Counter<br/>PV = 24 | CV = COUNTER0"]
-    DI1["INPUT: DI1_CaseCleared"] -- "R (Reset)" --> CTU1
-    CTU1 -- "Q (CV ≥ 24)" --> ACT1["DIRECT_WRITE: DO0_Diverter"]
-    CTU1 -- "Q (Sườn lên)" --> MQTT1["MQTT_PUB: synaptix/line1/batches"]
-```
+<div class="synx-node-chain" style="margin-bottom: 12px;">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● LIVE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DI0 • BOOL</span>
+        <span class="synx-node-alias">Cảm Biến Quang</span>
+        <span class="synx-node-val">Đếm Chai Vào (CU)</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">INC</span>
+  </div>
+
+  <div class="synx-canvas-node is-counter">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M5.5,3 L5.5,13 M10.5,3 L10.5,13 M2,6.5 L14,6.5 M2,10 L14,10" /></svg>
+        <span>CTU COUNTER</span>
+      </div>
+      <span class="synx-node-status is-active">● 24 / 24</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● CU</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">PV = 24 • CV COUNTER0</span>
+        <span class="synx-node-alias">Đếm Đủ 24 Chai/Thùng</span>
+        <span class="synx-node-val">Q = 1 khi CV &gt;= 24</span>
+      </div>
+      <div class="synx-node-pin is-out">Q ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">FULL</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● SET 1</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DO0 = 1</span>
+        <span class="synx-node-alias">Van Gạt Thùng Đầy</span>
+        <span class="synx-node-val">Đẩy Thùng Ra Băng Tải</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
+
+<div class="synx-node-chain" style="margin-top: 12px;">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● LIVE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DI1 • BOOL</span>
+        <span class="synx-node-alias">Công Tắc Thùng Mới</span>
+        <span class="synx-node-val">Vào Vị Trí (R)</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">RESET</span>
+  </div>
+
+  <div class="synx-canvas-node is-counter">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M5.5,3 L5.5,13 M10.5,3 L10.5,13 M2,6.5 L14,6.5 M2,10 L14,10" /></svg>
+        <span>CTU RESET</span>
+      </div>
+      <span class="synx-node-status is-pass">● 0 / 24</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● R</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Reset Về 0</span>
+        <span class="synx-node-alias">COUNTER0 = 0</span>
+        <span class="synx-node-val">Sẵn Sàng Thùng Mới</span>
+      </div>
+      <div class="synx-node-pin is-out">Q ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">RETRACT</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-pass">● SET 0</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DO0 = 0</span>
+        <span class="synx-node-alias">Thu Van Gạt Thùng</span>
+        <span class="synx-node-val">Đóng Chặn Thùng Mới</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 **Các bước cấu hình:**
 1. Mở [Danh mục Biến — Tag Catalog](/vi/workspaces/tag-catalog-tab) (`Ctrl+3`), đặt tên `DI0` là `DI0_PhotoSensor`, `DI1` là `DI1_CaseCleared`, `COUNTER0` là `CNT_CaseBottles` và `DO0` là `DO0_Diverter`.

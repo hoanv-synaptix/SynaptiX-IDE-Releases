@@ -46,26 +46,13 @@ For rapid strobe cadences (`OnTimeMs` or `OffTimeMs` below `2,000 ms`), always a
 
 ---
 
-## 4. State Machine / Timing Diagram
+## 4. Cyclic Oscillation Rules & Operating Phases
 
-The state diagram below details the dual-phase oscillator lifecycle, including initial phase dispatch (`StartWithOn`) and immediate safe reset whenever `In` returns to `0`:
-
-```mermaid
-stateDiagram-v2
-    [*] --> Stopped : "In == 0"
-    Stopped : "STOPPED (Q = 0, Phase ET = 0 ms)"
-    PhaseOn : "ON PHASE (Q = 1, 0 <= ET < OnTimeMs)"
-    PhaseOff : "OFF PHASE (Q = 0, 0 <= ET < OffTimeMs)"
-
-    Stopped --> PhaseOn : "In: 0 -> 1 (when StartWithOn == true)"
-    Stopped --> PhaseOff : "In: 0 -> 1 (when StartWithOn == false)"
-
-    PhaseOn --> PhaseOff : "ET >= OnTimeMs while In == 1 (Switch Q = 0, Reset Phase ET)"
-    PhaseOff --> PhaseOn : "ET >= OffTimeMs while In == 1 (Switch Q = 1, Reset Phase ET)"
-
-    PhaseOn --> Stopped : "In: 1 -> 0 (Immediate Q = 0)"
-    PhaseOff --> Stopped : "In: 1 -> 0 (Immediate Q = 0)"
-```
+When enabled (`In == 1`), `CYCLE_TIMER` alternates between two distinct phases:
+- **On-Phase (`OnTime`):** Output `Q = 1` for the duration of `OnTimeMs`.
+- **Off-Phase (`OffTime`):** Output `Q = 0` for the duration of `OffTimeMs`.
+- **Initial Phase (`StartWithOn`):** When `StartWithOn = true`, oscillation begins immediately in the On-Phase (`Q = 1`). When `false`, it begins with an Off-Phase rest.
+- **Immediate Safe Abort:** The instant `In` drops to `0`, output `Q` drops to `0` and internal phase timers reset safely.
 
 ---
 
@@ -107,16 +94,140 @@ Whenever an unacknowledged machine fault latch (`VFLAG0` = `1`) is active, an am
 3. **Rung 2 (Operator Fault Clear):** Place **`INPUT`** (`Tag = DI4`) → **[`TRIGGER`](/blocks/trigger)** (`ON_RISE`, `ForMs = 50` ms) → **[`ACTION`](/blocks/action)** (`SET_TAG`, `TargetTag = VFLAG0`, `ActionParam = 0`).
 4. Press `F5` to simulate: toggle `VFLAG0` to `1` and verify `DO3` immediately flashes `● ON` (`250 ms`) and `● OFF` (`1,750 ms`) repeatedly; press `DI4` to clear `VFLAG0 = 0` and verify `DO3` stops immediately at `0`.
 
-```mermaid
-flowchart LR
-    IN_FLT["INPUT: VFLAG0<br/>(Machine Fault Latch)"]
-    CYC_BCN["CYCLE_TIMER<br/>(ON: 250 ms / OFF: 1750 ms · Start ON · DO3)"]
+<div class="synx-node-chain" style="margin-bottom: 12px;">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● LIVE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">VFLAG0 • BOOL</span>
+        <span class="synx-node-alias">Fault Latch</span>
+        <span class="synx-node-val">Machine Interlock Flag</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
 
-    IN_RST["INPUT: DI4<br/>(Fault Reset Button)"]
-    TRG_RST["TRIGGER: ON_RISE<br/>(ForMs = 50 ms)"]
-    ACT_CLR["ACTION: SET_TAG<br/>(VFLAG0 = 0)"]
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">ENABLE</span>
+  </div>
 
-    IN_FLT -- "Out -> In" --> CYC_BCN
-    IN_RST -- "Out -> In" --> TRG_RST
-    TRG_RST -- "Out -> In" --> ACT_CLR
-```
+  <div class="synx-canvas-node is-timer">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 A6.5,6.5 0 1 1 1.5,8 M8,1.5 L8,8 L11,10" /></svg>
+        <span>CYCLE_TIMER</span>
+      </div>
+      <span class="synx-node-status is-active">● 250 / 1750 ms</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">ON 250ms / OFF 1750ms</span>
+        <span class="synx-node-alias">Flash Strobe DO3</span>
+        <span class="synx-node-val">Periodic Alarm Pulse</span>
+      </div>
+      <div class="synx-node-pin is-out">Q ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">STROBE</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● FLASH</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DO3 = 1</span>
+        <span class="synx-node-alias">Warning Beacon</span>
+        <span class="synx-node-val">Amber Light Strobe</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
+
+<div class="synx-node-chain" style="margin-top: 12px;">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● LIVE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DI4 • BOOL</span>
+        <span class="synx-node-alias">Reset Button</span>
+        <span class="synx-node-val">Operator Pushbutton</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">EDGE</span>
+  </div>
+
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M10,1 L5,8.5 L8.5,8.5 L6,15 L11,7.5 L7.5,7.5 Z" /></svg>
+        <span>TRIGGER</span>
+      </div>
+      <span class="synx-node-status is-rise">● ON_RISE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">50 ms Dwell</span>
+        <span class="synx-node-alias">Debounce Filter</span>
+        <span class="synx-node-val">Clean Pulse Detection</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">RESET</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-pass">● CLEAR</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">VFLAG0 = 0</span>
+        <span class="synx-node-alias">Clear Fault Latch</span>
+        <span class="synx-node-val">Extinguish Beacon DO3</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>

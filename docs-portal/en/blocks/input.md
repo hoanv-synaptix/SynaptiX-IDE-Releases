@@ -51,31 +51,11 @@ Selecting an `INPUT` node opens its property sheet in the right-hand **Inspector
 
 ---
 
-## 4. State Machine / Timing Diagram
+## 4. Simulation Stimulus & Interactive Testing (`F5`)
 
-Because `INPUT` is a zero-latency combinational source in runtime and an interactive stimulus generator in **Simulator Mode** (`F5`), its interactive state transitions follow two deterministic pathways depending on whether the bound tag is **Digital (`BOOL`)** or **Analog / Register (`INT32` / `REAL`)**:
-
-```mermaid
-stateDiagram-v2
-    [*] --> DigitalZero : "Bind Digital Tag (DI / DO / VFLAG)"
-    DigitalZero : "BOOL State = 0 (Badge: 0 / ○ 0)"
-    DigitalOne : "BOOL State = 1 (Badge: 1 / ● 1)"
-    DigitalZero --> DigitalOne : "Click ToggleSimInput or [ 1 ]"
-    DigitalOne --> DigitalZero : "Click ToggleSimInput or [ 0 ]"
-
-    [*] --> Analog0 : "Bind Analog/Register Tag (AI / VREG)"
-    Analog0 : "Value = 0 (Inactive)"
-    Analog50 : "Value = 50 (Active > 0)"
-    Analog90 : "Value = 90 (Active > 0)"
-    Analog100 : "Value = 100 (Active > 0)"
-    Analog0 --> Analog50 : "Quick-Cycle Click (val < 50 -> 50)"
-    Analog50 --> Analog90 : "Quick-Cycle Click (val < 90 -> 90)"
-    Analog90 --> Analog100 : "Quick-Cycle Click (val < 100 -> 100)"
-    Analog100 --> Analog0 : "Quick-Cycle Click (val >= 100 -> 0)"
-```
-
-- **Digital Quick-Toggle:** Clicking the on-canvas simulation toggle button switches `Tag.Value` cleanly between `0` (`○ 0`) and `1` (`● 1`).
-- **Analog 4-Step Quick-Cycle:** Clicking the quick-cycle button on an `AI` or `VREG` node steps through standard commissioning checkpoints `0 → 50 → 90 → 100 → 0`, while arbitrary exact engineering values can be typed directly into `TagValueText` in the Inspector.
+During offline simulation (`F5`), the `INPUT` block allows commissioning engineers to inject test stimuli directly on the canvas:
+- **Digital Quick-Toggle (`BOOL`):** Clicking the on-canvas toggle button alternates the tag value cleanly between `0` (`○ 0`) and `1` (`● 1`).
+- **Analog 4-Step Quick-Cycle (`AI` / `VREG`):** Clicking the quick-cycle button on an analog node steps through standard test checkpoints `0 → 50 → 90 → 100 → 0`, while exact numerical values can be entered into `TagValueText` in the Inspector.
 
 ---
 
@@ -121,22 +101,188 @@ A `4–20 mA` discharge pressure transmitter wired to analog input `AI0` (`0–1
 3. Drag a second wire (`1:N` fan-out) from the same `INPUT.Out` pin to a second **[`COMPARATOR`](/blocks/comparator)** (`CompareOp = GTE`, `ThresholdLo = 9500`) → **[`TRIGGER`](/blocks/trigger)** (`TriggerType = ON_RISE`, `ForMs = 100`) → **[`ACTION`](/blocks/action)** (`ActionType = SET_TAG`, `TargetTag = DO0`, `ActionParam = 0`).
 4. Press `F5` to launch the **Simulator**, select the `AI0` `INPUT` node, and enter `"8200"` in `TagValueText` (`Enter`): verify `VFLAG0` latches `1` after `500 ms` while `DO0` stays `1`. Next, enter `"9600"` and confirm `DO0` trips to `0` after `100 ms`.
 
-```mermaid
-flowchart LR
-    SRC["INPUT: AI0<br/>(Discharge Pressure)"]
-    CMP_WARN["COMPARATOR<br/>(AI0 >= 8000)"]
-    TRG_WARN["TRIGGER: ON_RISE<br/>(ForMs = 500 ms)"]
-    ACT_WARN["ACTION: SET_TAG<br/>(VFLAG0 = 1)"]
+<div class="synx-node-chain" style="margin-bottom: 12px;">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● LIVE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">AI0 • INT16</span>
+        <span class="synx-node-alias">Discharge Pressure</span>
+        <span class="synx-node-val">Raw Pipeline Pressure</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
 
-    CMP_TRIP["COMPARATOR<br/>(AI0 >= 9500)"]
-    TRG_TRIP["TRIGGER: ON_RISE<br/>(ForMs = 100 ms)"]
-    ACT_TRIP["ACTION: SET_TAG<br/>(DO0 = 0)"]
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">8200</span>
+  </div>
 
-    SRC -- "Out -> In" --> CMP_WARN
-    CMP_WARN -- "Out -> In" --> TRG_WARN
-    TRG_WARN -- "Out -> In" --> ACT_WARN
+  <div class="synx-canvas-node is-comparator">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M3.5,6 L8,9 L3.5,12 M9.5,7 L13,7 M9.5,10.5 L13,10.5" /></svg>
+        <span>COMPARATOR</span>
+      </div>
+      <span class="synx-node-status is-true">● GTE 8000</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">&gt;= 8000</span>
+        <span class="synx-node-alias">Warning Threshold</span>
+        <span class="synx-node-val">Pre-Alarm Check</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
 
-    SRC -- "Out -> In (Fan-Out)" --> CMP_TRIP
-    CMP_TRIP -- "Out -> In" --> TRG_TRIP
-    TRG_TRIP -- "Out -> In" --> ACT_TRIP
-```
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">TRUE</span>
+  </div>
+
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M10,1 L5,8.5 L8.5,8.5 L6,15 L11,7.5 L7.5,7.5 Z" /></svg>
+        <span>TRIGGER</span>
+      </div>
+      <span class="synx-node-status is-rise">● 500 ms</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">500 ms Filter</span>
+        <span class="synx-node-alias">Noise Dwell Filter</span>
+        <span class="synx-node-val">Confirm Pressure Rise</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">ENABLE</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● SET 1</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">VFLAG0 = 1</span>
+        <span class="synx-node-alias">Latch Warning Flag</span>
+        <span class="synx-node-val">Amber Beacon Alert</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
+
+<div class="synx-node-chain" style="margin-top: 12px;">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● LIVE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">AI0 • INT16</span>
+        <span class="synx-node-alias">Discharge Pressure</span>
+        <span class="synx-node-val">Raw Pipeline Pressure</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">9600</span>
+  </div>
+
+  <div class="synx-canvas-node is-comparator">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M3.5,6 L8,9 L3.5,12 M9.5,7 L13,7 M9.5,10.5 L13,10.5" /></svg>
+        <span>COMPARATOR</span>
+      </div>
+      <span class="synx-node-status is-true">● GTE 9500</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">&gt;= 9500</span>
+        <span class="synx-node-alias">Emergency High Trip</span>
+        <span class="synx-node-val">Severe Overpressure</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">TRIP</span>
+  </div>
+
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M10,1 L5,8.5 L8.5,8.5 L6,15 L11,7.5 L7.5,7.5 Z" /></svg>
+        <span>TRIGGER</span>
+      </div>
+      <span class="synx-node-status is-rise">● 100 ms</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">100 ms Filter</span>
+        <span class="synx-node-alias">Rapid Trip Filter</span>
+        <span class="synx-node-val">Protect Burst Pipe</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">CUTOUT</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-pass">● SET 0</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DO0 = 0</span>
+        <span class="synx-node-alias">Trip Pump DO0</span>
+        <span class="synx-node-val">Emergency Depressurize</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>

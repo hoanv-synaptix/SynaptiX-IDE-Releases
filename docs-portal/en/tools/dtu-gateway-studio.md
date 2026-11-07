@@ -9,34 +9,13 @@
 
 **DTU Gateway Studio** is a dedicated no-code fieldbus-to-cloud commissioning workbench built directly into **SynaptiX IDE**. When you create a project using the **SynaptiX DTU (`SYNX-DTU-485`)** preset, DTU Gateway Studio opens automatically as your primary workspace. On hybrid **SynaptiX Controller** or **SynaptiX Gateway** projects, you can launch it at any time by pressing `Ctrl+Shift+D` (or selecting **Device -> DTU Gateway Configuration...**).
 
-```mermaid
-flowchart LR
-    subgraph Field["RS-485 Serial Trunk"]
-        D1["Energy Meter (Slave 1)"]
-        D2["Temp/RH Sensor (Slave 2)"]
-        D3["Barcode / Scale (ASCII)"]
-    end
-
-    subgraph Studio["DTU Gateway Studio (SYNX-DTU-485)"]
-        S0["0: RS-485 Poller / Passthrough"]
-        S1["1: Wi-Fi & IPv4"]
-        S2["2: Cloud Uplink Router"]
-        S3["3: Timing & JSON Formatter"]
-        S0 --> S3 --> S2
-        S1 -.-> S2
-    end
-
-    subgraph Cloud["Enterprise Cloud & SCADA"]
-        MQ["MQTT(s) Broker (AWS / EMQX)"]
-        HT["HTTP(s) REST Webhook"]
-        TC["TCP Socket Server / Client"]
-    end
-
-    Field <-->|"9600..115200 bps"| S0
-    S2 -->|"TLS 1.2/1.3 JSON"| MQ
-    S2 -->|"POST / PUT"| HT
-    S2 -->|"Stream / Ping"| TC
-```
+::: tip Quick 4-Step DTU Gateway Commissioning Guide
+Follow the four guided sections in the left sidebar to quickly provision your gateway:
+1. **Section 0 (RS-485):** Define downstream serial slave registers to poll (Slave ID, registers, interval) or enable serial passthrough mode.
+2. **Section 1 (Wi-Fi):** Configure network credentials (SSID & Password) with DHCP or static IPv4 addressing.
+3. **Section 2 (Cloud Uplink):** Select your target cloud protocol: **MQTT** (AWS IoT, EMQX, HiveMQ), **HTTP REST Webhook**, or **TCP Socket**.
+4. **Section 3 (Payload / JSON):** Customize the telemetry JSON structure and publishing rate (e.g., every `5 seconds`).
+:::
 
 ---
 

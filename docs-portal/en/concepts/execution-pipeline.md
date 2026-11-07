@@ -17,27 +17,33 @@ The **SynaptiX Edge Runtime** solves this through a **Hybrid Deterministic Execu
 
 Every deterministic scan cycle progresses through five ordered phases while exchanging snapshots atomically with background fieldbus and IIoT workers:
 
-```mermaid
-flowchart TD
-    subgraph FastLoop["Deterministic Real-Time Control Loop (Sub-Millisecond Scan)"]
-        S1["1. Input Snapshot & Inbound Sync<br/>Sample DI0..7, AI0..3, RTC Clock & Dequeue Completed Async Reads"]
-        S2["2. Stateful Function Block Evaluation<br/>Update SCALE, TON, TOF, TP, CYCLE_TIMER, CTU, CTD -> Write Target Tags"]
-        S3["3. Sequential 4-Stage Rule Pipeline (Rules #0 .. #99)<br/>INPUT -> TRIGGER / COMPARATOR -> GUARD -> ACTION"]
-        S4["4. Physical Output Commit & Outbound Dispatch<br/>Drive DO0..7 / PWM / PTO, Persist VREG_RETAIN & Enqueue Async Jobs"]
-        S1 --> S2 --> S3 --> S4
-        S4 -->|"Next Monotonic Tick"| S1
-    end
-
-    subgraph AsyncPool["Non-Blocking Asynchronous Worker Queues (Zero Scan Stall)"]
-        Q_MB["RS-485 Master Queue<br/>(MB_READ / MB_WRITE)"]
-        Q_NET["IIoT & Socket Queue<br/>(MQTT_PUB / MQTT_SUB / HTTP_CLIENT / TCP_CLIENT)"]
-    end
-
-    S4 -.->|"Trigger Non-Blocking Request"| Q_MB
-    S4 -.->|"Enqueue Formatted Payload"| Q_NET
-    Q_MB -.->|"Atomic Tag Update on Completion"| S1
-    Q_NET -.->|"Inbound JSON / Status Tag Update"| S1
-```
+<div class="synx-pipeline-wrap">
+  <div class="synx-pipeline-grid">
+    <div class="synx-pipeline-card">
+      <span class="synx-pipeline-badge">Step 01 • Latch</span>
+      <h4 class="synx-pipeline-title">1. Input Snapshot</h4>
+      <p class="synx-pipeline-desc">Synchronously latch discrete inputs <code>DI0..7</code>, sample analog sensors <code>AI0..3</code>, and freeze inbound fieldbus packets.</p>
+    </div>
+    <div class="synx-pipeline-card">
+      <span class="synx-pipeline-badge">Step 02 • Update</span>
+      <h4 class="synx-pipeline-title">2. Stateful Blocks</h4>
+      <p class="synx-pipeline-desc">Accumulate monotonic timers (<code>TON/TOF/TP</code>), advance event counters (<code>CTU/CTD</code>), and execute <code>SCALE</code> conversions.</p>
+    </div>
+    <div class="synx-pipeline-card">
+      <span class="synx-pipeline-badge">Step 03 • Evaluate</span>
+      <h4 class="synx-pipeline-title">3. Rule Pipeline</h4>
+      <p class="synx-pipeline-desc">Sequentially evaluate the 4-stage rule pipeline from <code>Rule #1</code> to <code>#100</code>: <code>INPUT → TRIGGER/CMP → GUARD → ACTION</code>.</p>
+    </div>
+    <div class="synx-pipeline-card">
+      <span class="synx-pipeline-badge">Step 04 • Commit</span>
+      <h4 class="synx-pipeline-title">4. Output Commit</h4>
+      <p class="synx-pipeline-desc">Synchronously drive physical relay terminals <code>DO0..7</code>, output PWM/PTO pulses, and persist retentive registers.</p>
+    </div>
+  </div>
+  <div class="synx-pipeline-footer">
+    <span>↺ Deterministic 10ms Closed Loop (100 Hz Hard Real-time) • Atomic boundary state exchange</span>
+  </div>
+</div>
 
 ### Scan Determinism Guarantees
 - **Input Image Freeze:** Physical inputs (`DI0..7`, `AI0..3`) and inbound network values are latched at the top of the scan (`Step 1`). A tag's sampled input value never mutates mid-scan between `Rule #0` and `Rule #99`.
@@ -50,12 +56,98 @@ flowchart TD
 
 When you wire nodes on the [Logic Graph Canvas](/workspaces/logic-graph-tab) (`Ctrl+2`) and press **Compile** (`F7`), the graph compiler lowers visual chains into deterministic **4-Stage Rules** (up to **100 rules** on `SynaptiX Controller`, `SynaptiX Remote I/O`, and `SynaptiX Relay Unit`; up to **50 rules** on compact/gateway presets):
 
-```mermaid
-flowchart LR
-    P1["Stage 1: INPUT<br/>Source Tag Selection<br/>(DI, AI, VFLAG, VREG, COUNTER)"] --> P2["Stage 2: TRIGGER or COMPARATOR<br/>Edge / Level / RTC Schedule<br/>or Relational Threshold (==, !=, &gt;, &gt;=, &lt;, &lt;=)"]
-    P2 --> P3["Stage 3: GUARD (Optional)<br/>Safety &amp; Permissive Interlock<br/>(Secondary Tag Condition Gate)"]
-    P3 --> P4["Stage 4: ACTION<br/>Deterministic Output Execution<br/>(SET, RESET, TOGGLE, COPY, INC, DEC)"]
-```
+<div class="synx-node-chain">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>STAGE 1</span>
+      </div>
+      <span class="synx-node-status is-live">● INPUT</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Source Tag</span>
+        <span class="synx-node-alias">INPUT STAGE</span>
+        <span class="synx-node-val">DI, AI, VREG, Flags</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Raw Data</span>
+  </div>
+
+  <div class="synx-canvas-node is-comparator">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M3.5,6 L8,9 L3.5,12 M9.5,7 L13,7 M9.5,10.5 L13,10.5" /></svg>
+        <span>STAGE 2</span>
+      </div>
+      <span class="synx-node-status is-true">● EVALUATE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">TRIGGER / CMP</span>
+        <span class="synx-node-alias">EVENT EVAL</span>
+        <span class="synx-node-val">Edges / Relational Check</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">TRUE</span>
+  </div>
+
+  <div class="synx-canvas-node is-guard">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 L13.5,4 L13.5,9.5 Q13.5,13.5 8,15 Q2.5,13.5 2.5,9.5 L2.5,4 Z" /></svg>
+        <span>STAGE 3</span>
+      </div>
+      <span class="synx-node-status is-pass">● INTERLOCK</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">GUARD (Optional)</span>
+        <span class="synx-node-alias">SAFETY GATE</span>
+        <span class="synx-node-val">Series AND Permissive</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">ENABLE</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>STAGE 4</span>
+      </div>
+      <span class="synx-node-status is-active">● COMMIT</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">ACTION / DIRECT</span>
+        <span class="synx-node-alias">ACTUATOR EXEC</span>
+        <span class="synx-node-val">SET, RESET, TOGGLE, COPY</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 | Pipeline Stage | Visual Blocks | Runtime Responsibility |
 | :--- | :--- | :--- |

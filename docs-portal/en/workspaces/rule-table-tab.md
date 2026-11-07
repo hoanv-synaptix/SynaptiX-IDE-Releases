@@ -28,18 +28,16 @@ During plant commissioning, Factory Acceptance Testing (FAT), and safety audits,
 
 The **Rule Table** combines a top **Hardware Quota Header**, **4 Subsystem Sub-Tabs**, an operational **Filter & Optimization Toolbar**, the high-density **ECA Rule DataGrid**, and a collapsible bottom **Logic Flow Inspector**.
 
-### 2.1. Visual-to-ECA Lowering Architecture (`F7`)
+### 2.1. 100-Rule Hardware Budget Reference
 
-Understanding how visual blocks map into the **Rule Table** ensures predictable scan-time budgeting:
+The SynaptiX Controller provides a deterministic budget of **100 rule slots (`R1..R100`)**. Upon compilation (`F7`), canvas blocks consume slots according to predictable hardware quotas:
 
-```mermaid
-flowchart LR
-    G["Logic Graph Network (Visual FBD)"] -->|"Press F7: Lower & Validate"| C["Deterministic Compiler"]
-    C --> R1["Standard Pipeline: 1 ECA Rule"]
-    C --> R2["Timer Macro (TON / TOF / TP): 2 ECA Rules"]
-    C --> R3["Counter Macro (CTU / CTD): 4 ECA Rules"]
-    C --> SUB["Peripheral Tables: Modbus Master / MQTT / Function Blocks"]
-```
+| Canvas Block Type | Rule Slots Consumed | Operational Notes |
+| :--- | :---: | :--- |
+| **Standard Logic Chain** (`Input -> Trigger -> Action`) | **1 Rule** | Occupies 1 standard execution slot. |
+| **Timer Blocks** ([`TON`](/blocks/ton), [`TOF`](/blocks/tof), [`TP`](/blocks/tp)) | **2 Rules** | 1 rule for time accumulation, 1 rule for output actuation. |
+| **Counter Blocks** ([`CTU`](/blocks/ctu), [`CTD`](/blocks/ctd)) | **4 Rules** | Includes rules for edge counting, reset, and threshold comparison. |
+| **Modbus Master & MQTT Channels** | *0 Rule Slots* | Managed separately in dedicated peripheral tables. |
 
 ### 2.2. Toolbar Controls, Sub-Tabs & Hardware Budget Bar
 

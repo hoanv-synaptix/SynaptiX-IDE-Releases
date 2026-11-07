@@ -68,26 +68,147 @@ Nhóm khối truyền thông mạng IP không gây nghẽn (non-blocking) phục
 
 Mỗi chân kết nối (Connector Port) trên sơ đồ khối của **SynaptiX IDE** thuộc một trong hai miền tín hiệu tách biệt. Nắm vững sự khác biệt giữa **Chân Giá trị / Dữ liệu** và **Chân Sự kiện / Thực thi** giúp kỹ sư thiết kế mạch logic chuẩn xác ngay từ đầu và tránh lỗi cấu trúc khi biên dịch (`F7`).
 
-```mermaid
-flowchart LR
-    subgraph VAL["Miền Giá trị / Dữ liệu (Trạng thái Liên tục)"]
-        INP["INPUT<br/>(DI / AI / VREG)"]
-        SCL["SCALE<br/>(Hiệu chuẩn Tuyến tính)"]
-        CMP["COMPARATOR<br/>(Ngõ ra BOOL)"]
-    end
+<div class="synx-node-chain" style="margin-bottom: 12px;">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● VALUE PIN</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Nguồn Dữ Liệu</span>
+        <span class="synx-node-alias">Tag Vật Lý / Ảo</span>
+        <span class="synx-node-val">DI, AI, VREG, Flag</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
 
-    subgraph EVT["Miền Sự kiện / Thực thi (Chuỗi Xung & Cổng Khóa)"]
-        TRG["TRIGGER<br/>(Sườn / Chống dội / RTC)"]
-        GRD["GUARD<br/>(Khóa Liên động An toàn)"]
-        ACT["ACTION<br/>(Ghi Đích Tất định)"]
-    end
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Analog Raw</span>
+  </div>
 
-    INP -- "Out -> In (Số học)" --> SCL
-    SCL -- "Out -> In (Đã quy đổi)" --> CMP
-    CMP -- "Out -> In (BOOL)" --> TRG
-    TRG -- "Out -> In (Xung Sự kiện)" --> GRD
-    GRD -- "Out -> In (Xung Cho phép)" --> ACT
-```
+  <div class="synx-canvas-node is-timer">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,13 L5,13 L5,9.5 L8,9.5 L8,6 L11,6 L11,3 L14,3" /></svg>
+        <span>SCALE</span>
+      </div>
+      <span class="synx-node-status is-active">● CALIBRATED</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Quy Đổi Tuyến Tính</span>
+        <span class="synx-node-alias">Đơn Vị Kỹ Thuật</span>
+        <span class="synx-node-val">Sang Bar, °C, RPM</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">REAL Val</span>
+  </div>
+
+  <div class="synx-canvas-node is-comparator">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M3.5,6 L8,9 L3.5,12 M9.5,7 L13,7 M9.5,10.5 L13,10.5" /></svg>
+        <span>COMPARATOR</span>
+      </div>
+      <span class="synx-node-status is-true">● RELATIONAL</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">So Sánh Ngưỡng</span>
+        <span class="synx-node-alias">Đánh Giá Quan Hệ</span>
+        <span class="synx-node-val">Xuất Cờ BOOL Logic</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+</div>
+
+<div style="text-align: center; margin: 4px 0; color: var(--vp-c-brand-1); font-size: 0.8rem; font-weight: 600;">
+  ↓ Cờ BOOL chuyển tiếp sang Miền Sự kiện (Kích hoạt Xung Thực thi)
+</div>
+
+<div class="synx-node-chain" style="margin-top: 12px;">
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M10,1 L5,8.5 L8.5,8.5 L6,15 L11,7.5 L7.5,7.5 Z" /></svg>
+        <span>TRIGGER</span>
+      </div>
+      <span class="synx-node-status is-rise">● EVENT PIN</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Phát Hiện Sườn</span>
+        <span class="synx-node-alias">Bắt Xung Kích Hoạt</span>
+        <span class="synx-node-val">Sườn Lên / Lọc Dội / RTC</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">PULSE</span>
+  </div>
+
+  <div class="synx-canvas-node is-guard">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 L13.5,4 L13.5,9.5 Q13.5,13.5 8,15 Q2.5,13.5 2.5,9.5 L2.5,4 Z" /></svg>
+        <span>GUARD</span>
+      </div>
+      <span class="synx-node-status is-pass">● GATE PIN</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Cổng Khóa An Toàn</span>
+        <span class="synx-node-alias">Liên Động Nối Tiếp</span>
+        <span class="synx-node-val">Cho Qua Khi Đúng (AND)</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">PERMIT</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● COMMIT</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Chấp Hành Tất Định</span>
+        <span class="synx-node-alias">Thực Thi Đích</span>
+        <span class="synx-node-val">SET, RESET, TOGGLE</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 ### 2.1 Phân biệt Chân Giá trị / Dữ liệu và Chân Sự kiện / Thực thi
 

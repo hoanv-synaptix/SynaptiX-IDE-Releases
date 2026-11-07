@@ -44,27 +44,122 @@ The **Atomic Deploy Workspace** is structured into a **Left Pre-Flight & Deploym
 
 The sequence diagram below illustrates how **SynaptiX IDE** and the **SynaptiX Runtime** guarantee zero half-written states even under sudden power loss or cable disconnection:
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant IDE as "SynaptiX IDE (Deploy Engine)"
-    participant STG as "SynaptiX Device (Isolated Staging Buffer)"
-    participant RUN as "SynaptiX Runtime (Active Scan Engine)"
+<div class="synx-node-chain" style="margin-bottom: 12px;">
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>PHASE 1</span>
+      </div>
+      <span class="synx-node-status">PRE-FLIGHT</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Pre-Flight Check</span>
+        <span class="synx-node-alias">Compiler Validity</span>
+        <span class="synx-node-val">Check Limits &amp; Tags</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
 
-    Note over IDE,RUN: Pre-Flight Check: Compile State Valid, Rule Bounds & Hardware Capabilities OK
-    IDE->>STG: "Phase 1A: Stream Rules, Function Blocks, Peripheral Configs & Tag Types"
-    Note right of RUN: "Existing control logic continues deterministic scan uninterrupted"
-    IDE->>STG: "Phase 1B: Submit Payload Digest & Request Integrity Verification"
-    alt "Cable Drop, Brownout, or Checksum Mismatch in Phase 1"
-        STG--xIDE: "Staging Aborted / Link Timeout"
-        Note right of RUN: "Active Flash & Running Logic Remain 100% Untouched"
-    else "100% Checksum Verified"
-        STG-->>IDE: "Staging Verified OK (Ready for Commit)"
-        IDE->>RUN: "Phase 2: Issue Single Atomic Flash Swap Command"
-        RUN->>RUN: "Bumpless Scan-Boundary Swap & Non-Volatile Commit"
-        RUN-->>IDE: "Handshake Confirmed (New Config Version & Elapsed ms)"
-    end
-```
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Stream</span>
+  </div>
+
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,13 L5,13 L5,9.5 L8,9.5 L8,6 L11,6 L11,3 L14,3" /></svg>
+        <span>PHASE 2</span>
+      </div>
+      <span class="synx-node-status">STAGING</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Staging Buffer</span>
+        <span class="synx-node-alias">Isolated Binary Stream</span>
+        <span class="synx-node-val">Old Logic Still Runs</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Verify</span>
+  </div>
+
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M10,1 L5,8.5 L8.5,8.5 L6,15 L11,7.5 L7.5,7.5 Z" /></svg>
+        <span>PHASE 3</span>
+      </div>
+      <span class="synx-node-status">CRC-16</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Integrity Check</span>
+        <span class="synx-node-alias">Digest & Length</span>
+        <span class="synx-node-val">Match Wire CRC</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Swap</span>
+  </div>
+
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 L13.5,4 L13.5,9.5 Q13.5,13.5 8,15 Q2.5,13.5 2.5,9.5 L2.5,4 Z" /></svg>
+        <span>PHASE 4</span>
+      </div>
+      <span class="synx-node-status">ATOMIC</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Bumpless Swap</span>
+        <span class="synx-node-alias">10ms Scan Boundary</span>
+        <span class="synx-node-val">Zero Machine Jitter</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Active</span>
+  </div>
+
+  <div class="synx-canvas-node is-step is-done">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>PHASE 5</span>
+      </div>
+      <span class="synx-node-status is-active">● COMMIT</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Version Commit</span>
+        <span class="synx-node-alias">Firmware Handshake</span>
+        <span class="synx-node-val">Confirmed Online</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 ::: tip SEMANTIC HASH INTELLIGENCE
 **SynaptiX IDE** tracks a **Semantic Program Hash** computed strictly over compiled logic rules, tag data types, and peripheral configurations. Purely visual adjustments on the [Logic Graph Canvas](/workspaces/logic-graph-tab)—such as panning, aligning nodes (`Alt+M`), or redistributing spacing (`Alt+Shift+H`)—do **not** invalidate a verified deployment state.

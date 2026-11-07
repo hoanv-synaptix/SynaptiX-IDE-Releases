@@ -9,34 +9,13 @@
 
 **DTU Gateway Studio** là không gian làm việc chuyên biệt không cần viết mã (No-Code) dùng để cấu hình cầu nối dữ liệu từ chuẩn nối tiếp hiện trường RS-485 lên hạ tầng Cloud / SCADA ngay trong **SynaptiX IDE**. Khi khởi tạo dự án mới với cấu hình **SynaptiX DTU (`SYNX-DTU-485`)**, DTU Gateway Studio sẽ tự động mở làm màn hình làm việc chính. Đối với các dự án lai trên **SynaptiX Controller** hoặc **SynaptiX Gateway**, kỹ sư có thể gọi nhanh công cụ này bất kỳ lúc nào bằng phím tắt `Ctrl+Shift+D` (hoặc vào menu **Thiết bị -> Cấu hình DTU Gateway...**).
 
-```mermaid
-flowchart LR
-    subgraph Field["Tuyến Cáp Nối tiếp RS-485"]
-        D1["Đồng hồ Điện (Slave 1)"]
-        D2["Cảm biến Nhiệt/Ẩm (Slave 2)"]
-        D3["Đầu cân / Mã vạch (ASCII)"]
-    end
-
-    subgraph Studio["DTU Gateway Studio (SYNX-DTU-485)"]
-        S0["0: Quét RS-485 / Truyền trong suốt"]
-        S1["1: Mạng Wi-Fi & IPv4"]
-        S2["2: Định tuyến Cloud Uplink"]
-        S3["3: Chu kỳ & Đóng gói JSON"]
-        S0 --> S3 --> S2
-        S1 -.-> S2
-    end
-
-    subgraph Cloud["Đám mây Doanh nghiệp & SCADA"]
-        MQ["MQTT(s) Broker (AWS / EMQX)"]
-        HT["HTTP(s) REST Webhook"]
-        TC["TCP Socket Server / Client"]
-    end
-
-    Field <-->|"9600..115200 bps"| S0
-    S2 -->|"TLS 1.2/1.3 JSON"| MQ
-    S2 -->|"POST / PUT"| HT
-    S2 -->|"Stream / Ping"| TC
-```
+::: tip Hướng dẫn Cấu hình Nhanh Cầu nối DTU Gateway
+Chỉ cần thực hiện 4 bước tuần tự theo danh mục điều hướng bên trái giao diện:
+1. **Mục 0 (RS-485):** Khai báo danh sách cảm biến cần đọc (Slave ID, thanh ghi, chu kỳ quét) hoặc chế độ truyền trong suốt (Passthrough).
+2. **Mục 1 (Wi-Fi):** Nhập tên Wi-Fi (SSID) và mật khẩu để thiết bị kết nối vào mạng nhà máy (hỗ trợ DHCP hoặc IP tĩnh).
+3. **Mục 2 (Cloud Uplink):** Chọn giao thức đẩy dữ liệu: **MQTT** (đám mây AWS IoT, EMQX, HiveMQ), **HTTP REST Webhook** hoặc **TCP Socket**.
+4. **Mục 3 (Payload / JSON):** Tùy chỉnh mẫu gói tin JSON và nhịp gửi định kỳ (ví dụ: mỗi `5 giây`).
+:::
 
 ---
 

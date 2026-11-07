@@ -15,33 +15,13 @@ Every **SynaptiX Edge Controller**, **Remote I/O Unit**, and **DTU Gateway** equ
 
 Press `Ctrl+Shift+B` from any workspace (or click **Device -> RS-485 Port Configuration...**) to open the **RS-485 Modbus Ports Configuration** dialog. Depending on your selected hardware preset, SynaptiX IDE exposes `RS-485 #1` through `RS-485 #4` (`PortIndex 0..3`) in the left port selector list.
 
-```mermaid
-flowchart LR
-    subgraph Field["Field Sensor Bus (RS-485 #1 - Master)"]
-        M1["Power Meter (ID: 1)"]
-        M2["Temp/RH Probe (ID: 2)"]
-        M3["VFD Drive (ID: 3)"]
-    end
+### Quick 3-Step RS-485 Port Setup
 
-    subgraph Edge["SynaptiX Edge Controller"]
-        P1["UART/DMA Port 1 (Master Poller)"]
-        RAM["Deterministic Tag Memory (DI, DO, AI, VREG, COUNTER)"]
-        P2["UART/DMA Port 2 (Slave ID: 1..247)"]
-        TCP["Ethernet / Wi-Fi (Modbus TCP :502)"]
-        P1 --> RAM
-        RAM --> P2
-        RAM --> TCP
-    end
-
-    subgraph Plant["Supervisory Control Layer"]
-        HMI["Local Touch HMI (RS-485 Master)"]
-        SCADA["Ignition / WinCC / Kepware"]
-    end
-
-    Field <-->|"FC01..04 / FC05..16"| P1
-    HMI <-->|"Modbus RTU"| P2
-    SCADA <-->|"Modbus TCP :502"| TCP
-```
+1. **Step 1 — Open the Dialog:** Press `Ctrl+Shift+B` on your keyboard.
+2. **Step 2 — Assign the Port Role:**
+   - Select **Modbus RTU Master**: Use this role when the controller needs to actively poll energy meters, VFDs, or sensors using [`MB_READ`](/blocks/mb-read) and [`MB_WRITE`](/blocks/mb-write) blocks.
+   - Select **Modbus RTU Slave**: Use this role when serving data up to an on-panel touch HMI or plant SCADA system via a dedicated Slave ID (`1..247`).
+3. **Step 3 — Set Baudrate & Save:** Choose your serial baudrate (`9600`, `19200`, or `115200`), Parity (`None`, `Even`, `Odd`), and click **Save Configuration**.
 
 ### 1.1 Per-Port Operating Role: Master vs. Slave
 

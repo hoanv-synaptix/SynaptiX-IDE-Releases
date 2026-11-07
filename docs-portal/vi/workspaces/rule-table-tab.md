@@ -28,18 +28,16 @@ Trong giai đoạn nghiệm thu tại xưởng (FAT), chạy thử tại nhà m�
 
 Giao diện **Rule Table** tích hợp **Thanh Ngân sách Phần cứng** ở tiêu đề trên, **4 Thẻ Phân hệ Con (Sub-Tabs)**, **Thanh Công cụ Lọc & Tối ưu**, bảng dữ liệu mật độ cao **ECA Rule DataGrid** và khay **Logic Flow Inspector** thu gọn ở cạnh dưới.
 
-### 2.1. Kiến trúc Hạ cấp từ Sơ đồ Trực quan sang Tập Luật ECA (`F7`)
+### 2.1. Định mức Ngân sách 100 Luật Phần cứng
 
-Nắm vững quy tắc ánh xạ từ khối hàm trực quan sang số lượng khe luật giúp kỹ sư hoạch định chính xác dung lượng dự án:
+SynaptiX Controller cung cấp ngân sách cố định **100 khe luật (`R1..R100`)**. Khi biên dịch (`F7`), các khối đồ họa trên bản vẽ sẽ tiêu thụ số lượng khe luật tương ứng:
 
-```mermaid
-flowchart LR
-    G["Mạng Sơ đồ Logic (Visual FBD)"] -->|"Nhấn F7: Hạ cấp & Kiểm tra tĩnh"| C["Trình Biên dịch Tất định"]
-    C --> R1["Chuỗi Chuẩn: 1 Luật ECA"]
-    C --> R2["Khối Hẹn giờ (TON / TOF / TP): 2 Luật ECA"]
-    C --> R3["Khối Bộ đếm (CTU / CTD): 4 Luật ECA"]
-    C --> SUB["Bảng Phân hệ: Modbus Master / MQTT / Function Blocks"]
-```
+| Loại Khối trên Bản vẽ Sơ đồ Logic | Số khe Luật Tiêu thụ | Ghi chú Vận hành |
+| :--- | :---: | :--- |
+| **Chuỗi mạch logic đơn thuần** (`Input -> Trigger -> Action`) | **1 Luật** | Chiếm 1 khe nhớ thực thi chuẩn. |
+| **Khối Hẹn giờ** ([`TON`](/vi/blocks/ton), [`TOF`](/vi/blocks/tof), [`TP`](/vi/blocks/tp)) | **2 Luật** | 1 luật kiểm soát thời gian đếm và 1 luật kích hoạt ngõ ra. |
+| **Khối Bộ đếm** ([`CTU`](/vi/blocks/ctu), [`CTD`](/vi/blocks/ctd)) | **4 Luật** | Gồm các luật đếm xung, đặt lại (Reset) và so sánh ngưỡng. |
+| **Kênh Modbus Master & MQTT** | *Không tốn khe luật* | Được quản lý riêng biệt tại các thẻ phân hệ con. |
 
 ### 2.2. Tham chiếu Thanh Công cụ, Phân hệ Con & Thanh Ngân sách
 

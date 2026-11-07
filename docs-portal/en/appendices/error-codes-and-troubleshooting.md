@@ -69,23 +69,11 @@ Pressing `F7` (or `Ctrl+F5`) runs static graph verification before generating by
 
 ## 4. Step-by-Step Field Commissioning Fault Tree
 
-```mermaid
-flowchart TD
-    Start["Commissioning Issue Detected"] --> Q1{"What is the symptom?"}
-    Q1 -->|"USB CDC Port Missing"| U1["1. Check 24V DC Power & Data-Rated USB-C Cable"]
-    U1 --> U2["2. Verify Windows Device Manager -> Ports (COM & LPT)"]
-    U2 --> U3["3. Close Serial Monitors Locking COM Port -> Press F4"]
-
-    Q1 -->|"Modbus TCP :502 Refused"| T1["1. Ping Device IPv4 from Laptop"]
-    T1 --> T2["2. Check Subnet Mask & VLAN Firewall on TCP Port 502"]
-    T2 --> T3["3. Confirm Ethernet Link LEDs or Wi-Fi Status = 'Got IP'"]
-
-    Q1 -->|"Tags Showing [STALE]"| S1["1. Open Ctrl+Shift+D Wire Inspector -> Click 'Read Once'"]
-    S1 --> S2{"Any RX Hex Bytes?"}
-    S2 -->|"0 Bytes (Timeout)"| S3["Check Sensor Power, Slave ID, Baud Rate & Swap A/B"]
-    S2 -->|"CRC Error / Garbled"| S4["Match Parity (8N1/8E1) & Check 120 Ohm Termination"]
-    S2 -->|"Exception 0x02 / 0x03"| S5["Fix 1-Based vs 0-Based Offset & Data Type Width"]
-```
+| Fault Symptom | Root Cause | 3-Step Field Resolution Playbook |
+| :--- | :--- | :--- |
+| **USB CDC Port Missing** | Power-only USB cable (lacks D+/D- lines) or another serial monitor/terminal process has locked COM exclusive access. | 1. Swap to a verified shielded data USB cable.<br/>2. Check Windows Device Manager under Ports (COM & LPT).<br/>3. Close PuTTY/ModScan and press **F4** to rescan. |
+| **Modbus TCP (:502) Connection Refused** | IP subnet mismatch, duplicate static IP address, or plant VLAN firewall blocking port 502. | 1. Run `ping <IP>` from command prompt to verify layer-3 reachability.<br/>2. Ensure laptop NIC shares the same subnet (e.g. `192.168.1.x /24`).<br/>3. Whitelist inbound TCP port 502 on industrial switches. |
+| **Fieldbus Tags Flagged [STALE]** | Sensor 24V supply off, reversed RS-485 polarity, baud/parity mismatch, or off-by-one register addressing. | 1. Press **Ctrl+Shift+D** Wire Inspector and click *Read Once*.<br/>2. If 0 RX bytes: swap RS-485 A(+) and B(-) lines.<br/>3. If CRC error: match parity (8N1/8E1) and enable 120Ω bus termination. |
 
 ### Quick Resolution Playbooks
 

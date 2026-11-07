@@ -68,26 +68,147 @@ Non-blocking edge-to-cloud telemetry publishers, JSON command subscribers, REST 
 
 Every connector port on a **SynaptiX IDE** graph node belongs to one of two strict signal domains. Understanding the distinction between **Value/Data Pins** and **Event/Execution Pins** prevents structural wiring errors during compilation (`F7`).
 
-```mermaid
-flowchart LR
-    subgraph VAL["Value / Data Domain (Continuous State)"]
-        INP["INPUT<br/>(DI / AI / VREG)"]
-        SCL["SCALE<br/>(Linear Calibration)"]
-        CMP["COMPARATOR<br/>(BOOL Output)"]
-    end
+<div class="synx-node-chain" style="margin-bottom: 12px;">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● VALUE PIN</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Data Source</span>
+        <span class="synx-node-alias">Physical / Virtual Tag</span>
+        <span class="synx-node-val">DI, AI, VREG, Flag</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
 
-    subgraph EVT["Event / Execution Domain (Edge & Gate Pipeline)"]
-        TRG["TRIGGER<br/>(Edge / Dwell / RTC)"]
-        GRD["GUARD<br/>(Safety Interlock)"]
-        ACT["ACTION<br/>(Deterministic Write)"]
-    end
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Analog Raw</span>
+  </div>
 
-    INP -- "Out -> In (Numeric)" --> SCL
-    SCL -- "Out -> In (Scaled)" --> CMP
-    CMP -- "Out -> In (BOOL)" --> TRG
-    TRG -- "Out -> In (Event Pulse)" --> GRD
-    GRD -- "Out -> In (Gated Pulse)" --> ACT
-```
+  <div class="synx-canvas-node is-timer">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,13 L5,13 L5,9.5 L8,9.5 L8,6 L11,6 L11,3 L14,3" /></svg>
+        <span>SCALE</span>
+      </div>
+      <span class="synx-node-status is-active">● CALIBRATED</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Linear Calibration</span>
+        <span class="synx-node-alias">Engineering Units</span>
+        <span class="synx-node-val">To Bar, °C, RPM</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">REAL Val</span>
+  </div>
+
+  <div class="synx-canvas-node is-comparator">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M3.5,6 L8,9 L3.5,12 M9.5,7 L13,7 M9.5,10.5 L13,10.5" /></svg>
+        <span>COMPARATOR</span>
+      </div>
+      <span class="synx-node-status is-true">● RELATIONAL</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Threshold Check</span>
+        <span class="synx-node-alias">Relational Logic</span>
+        <span class="synx-node-val">Outputs BOOL Flag</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+</div>
+
+<div style="text-align: center; margin: 4px 0; color: var(--vp-c-brand-1); font-size: 0.8rem; font-weight: 600;">
+  ↓ BOOL Flag Transitions into Event Domain (Enables Downstream Execution Pulse)
+</div>
+
+<div class="synx-node-chain" style="margin-top: 12px;">
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M10,1 L5,8.5 L8.5,8.5 L6,15 L11,7.5 L7.5,7.5 Z" /></svg>
+        <span>TRIGGER</span>
+      </div>
+      <span class="synx-node-status is-rise">● EVENT PIN</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Edge Detection</span>
+        <span class="synx-node-alias">Execution Pulse</span>
+        <span class="synx-node-val">Rising / Debounce / RTC</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">PULSE</span>
+  </div>
+
+  <div class="synx-canvas-node is-guard">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 L13.5,4 L13.5,9.5 Q13.5,13.5 8,15 Q2.5,13.5 2.5,9.5 L2.5,4 Z" /></svg>
+        <span>GUARD</span>
+      </div>
+      <span class="synx-node-status is-pass">● GATE PIN</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Safety Interlock</span>
+        <span class="synx-node-alias">Series Permissive</span>
+        <span class="synx-node-val">Passes When TRUE (AND)</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">PERMIT</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● COMMIT</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Deterministic Exec</span>
+        <span class="synx-node-alias">Target Assignment</span>
+        <span class="synx-node-val">SET, RESET, TOGGLE</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 ### 2.1 Value / Data Pins vs. Event / Execution Pins
 

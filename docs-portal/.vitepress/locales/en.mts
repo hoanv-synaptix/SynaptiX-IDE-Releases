@@ -1,12 +1,12 @@
 import type { DefaultTheme, LocaleSpecificConfig } from 'vitepress'
 
 export const enConfig: LocaleSpecificConfig<DefaultTheme.Config> = {
-  title: 'SynaptiX IDE Docs',
-  description: 'Technical Reference Manual & System Integration Wiki for SynaptiX IDE',
+  title: 'SynaptiX Programming Guide',
+  description: 'Official Technical Reference Manual & Programming Guide for SynaptiX Ecosystem',
   themeConfig: {
-    siteTitle: 'SynaptiX IDE Wiki',
+    siteTitle: 'SynaptiX Programming Guide',
     nav: [
-      { text: 'Wiki Home', link: '/' },
+      { text: 'Guide Home', link: '/' },
       { text: 'Getting Started', link: '/getting-started/installation', activeMatch: '/(concepts|getting-started)/' },
       { text: 'Workspaces', link: '/workspaces/device-tab', activeMatch: '/workspaces/' },
       { text: 'Blocks Reference', link: '/blocks/overview', activeMatch: '/blocks/' },

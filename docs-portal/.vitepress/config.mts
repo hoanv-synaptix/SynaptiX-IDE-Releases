@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitepress'
+import { fileURLToPath, URL } from 'node:url'
 import { enConfig } from './locales/en.mts'
 import { viConfig } from './locales/vi.mts'
 
@@ -48,7 +49,7 @@ export default defineConfig({
 
   themeConfig: {
     logo: '/logo.png',
-    siteTitle: 'SynaptiX IDE Wiki',
+    siteTitle: 'SynaptiX Programming Guide',
     search: {
       provider: 'local',
       options: {
@@ -56,8 +57,8 @@ export default defineConfig({
           vi: {
             translations: {
               button: {
-                buttonText: 'Tìm kiếm thông số, khối hàm, địa chỉ...',
-                buttonAriaLabel: 'Tìm kiếm tài liệu'
+                buttonText: 'Tìm kiếm',
+                buttonAriaLabel: 'Tìm kiếm'
               },
               modal: {
                 noResultsText: 'Không tìm thấy kết quả phù hợp cho',
@@ -76,6 +77,14 @@ export default defineConfig({
   },
 
   vite: {
+    resolve: {
+      alias: [
+        {
+          find: /^.*\/VPNavBarSearch\.vue$/,
+          replacement: fileURLToPath(new URL('./theme/components/NavbarInlineSearch.vue', import.meta.url))
+        }
+      ]
+    },
     server: {
       host: true
     },

@@ -1,13 +1,13 @@
-# SynaptiX IDE Technical Documentation Wiki
+# SynaptiX Programming Guide
 
 <div class="doc-meta-bar">
-  <span><strong>Document ID:</strong> SYNX-DOC-IDE-000</span>
-  <span><strong>Software Suite:</strong> SynaptiX IDE (.NET 8 Desktop Engineering Environment)</span>
-  <span><strong>Audience:</strong> System Integrators, Automation &amp; IIoT Engineers</span>
+  <span><strong>Document ID:</strong> SYNX-DOC-PROG-000</span>
+  <span><strong>Software Platform:</strong> SynaptiX IDE (.NET 8 Engineering Environment)</span>
+  <span><strong>Audience:</strong> System Integrators, Automation &amp; Embedded Engineers</span>
   <span><strong>Standard:</strong> IEC/IEEE 82079-1 &bull; ANSI/ISA-101</span>
 </div>
 
-Welcome to the official engineering reference manual for **SynaptiX IDE** — the unified desktop development, simulation, commissioning, and telemetry configuration environment for the **SynaptiX Edge Automation & IIoT Ecosystem**.
+Welcome to the official **SynaptiX Programming Guide** — the comprehensive engineering reference and system integration manual for the **SynaptiX Edge Automation & IIoT Ecosystem**.
 
 Unlike fragmented configuration utilities that separate local control logic from fieldbus polling and cloud telemetry, **SynaptiX IDE** integrates visual graph authoring, strict physical type checking, cycle-accurate offline simulation, atomic flash deployment, and live 20 FPS telemetry diagnostics inside a single deterministic workbench.
 
@@ -56,14 +56,38 @@ This manual is organized sequentially into **six progressive chapters** in the l
 
 ## End-to-End Engineering Workflow
 
-```mermaid
-flowchart LR
-    A["1. Select Device Preset<br/>(New Project / Auto-Detect)"] --> B["2. Define Physical &amp; Virtual Tags<br/>(Tag Catalog · Ctrl+3)"]
-    B --> C["3. Wire Control &amp; IIoT Blocks<br/>(Logic Graph · Ctrl+2)"]
-    C --> D["4. Verify Offline &amp; Compile<br/>(Simulator F5 · Compile F7)"]
-    D --> E["5. Two-Phase Atomic Commit<br/>(Deploy · Ctrl+F5)"]
-    E --> F["6. Observe &amp; Commission<br/>(Live Watch Ctrl+7 · Live Debug F8)"]
-```
+<div class="synx-workflow-grid">
+  <div class="synx-workflow-card">
+    <div class="synx-workflow-num">1</div>
+    <h4 class="synx-workflow-title">Select Target Device Preset</h4>
+    <p class="synx-workflow-desc">Initialize a new project or auto-detect physical target hardware via local USB CDC or industrial Ethernet.</p>
+  </div>
+  <div class="synx-workflow-card">
+    <div class="synx-workflow-num">2</div>
+    <h4 class="synx-workflow-title">Define Physical &amp; Virtual Tags</h4>
+    <p class="synx-workflow-desc">Provision the 128-tag global memory space (DI, DO, AI, VREG) inside Tag Catalog (<kbd>Ctrl+3</kbd>) with strict physical types.</p>
+  </div>
+  <div class="synx-workflow-card">
+    <div class="synx-workflow-num">3</div>
+    <h4 class="synx-workflow-title">Wire Control &amp; IIoT Blocks</h4>
+    <p class="synx-workflow-desc">Drag and drop 18 visual function blocks, Modbus RTU masters, and MQTT telemetry streams on Logic Graph (<kbd>Ctrl+2</kbd>).</p>
+  </div>
+  <div class="synx-workflow-card">
+    <div class="synx-workflow-num">4</div>
+    <h4 class="synx-workflow-title">Verify Offline &amp; Compile</h4>
+    <p class="synx-workflow-desc">Validate cycle timing in the cycle-accurate Simulator (<kbd>F5</kbd>) and perform pre-flight memory checks during compilation (<kbd>F7</kbd>).</p>
+  </div>
+  <div class="synx-workflow-card">
+    <div class="synx-workflow-num">5</div>
+    <h4 class="synx-workflow-title">Two-Phase Atomic Commit Deploy</h4>
+    <p class="synx-workflow-desc">Commit bytecode safely via Deploy (<kbd>Ctrl+F5</kbd>) with SHA/CRC verification and glitch-free firmware flashing.</p>
+  </div>
+  <div class="synx-workflow-card">
+    <div class="synx-workflow-num">6</div>
+    <h4 class="synx-workflow-title">Observe &amp; Commission at 20 FPS</h4>
+    <p class="synx-workflow-desc">Monitor real-time live waveforms inside Live Watch (<kbd>Ctrl+7</kbd>) and perform tactile tag forcing (<kbd>F8</kbd>).</p>
+  </div>
+</div>
 
 ## Key Architectural Pillars of SynaptiX IDE
 

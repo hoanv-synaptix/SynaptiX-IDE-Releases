@@ -51,19 +51,13 @@ Nhấp nút **`[ Cấu hình TCP Client... ]`** (hoặc nhấp đúp vào khối
 
 ---
 
-## 4. Máy Trạng thái Duy trì Kết nối & Giữ Nhịp tim
+## 4. Cơ chế Duy trì Kết nối & Giữ Nhịp tim (Heartbeat)
 
-```mermaid
-stateDiagram-v2
-    [*] --> Disconnected : "Khởi động (Conn = 0)"
-    Disconnected --> Connecting : "Mở bắt tay TCP tới RemoteHost:RemotePort"
-    Connecting --> Disconnected : "Từ chối / Quá hạn [Err ← 1, Chờ ReconnectDelaySec]"
-    Connecting --> Connected : "Bắt tay SYN-ACK Thành công [Conn ← 1, Err ← 0]"
-    Connected --> Connected : "Phát gói báo danh OnConnect (nếu bật)"
-    Connected --> Connected : "Mỗi HeartbeatIntervalSec → Phát HeartbeatPayload"
-    Connected --> Connected : "Sườn lên Send ↑ → Phát [Tiền tố] + Payload + Hậu tố [Done ← 1]"
-    Connected --> Disconnected : "Đứt cáp / Máy chủ đóng Socket [Conn ← 0, Err ← 1]"
-```
+Khối `TCP_CLIENT` duy trì luồng dữ liệu hai chiều liên tục tới máy chủ Socket:
+- **Tự động kết nối lại (`Auto-Reconnect`):** Tự động mở bắt tay TCP tới `RemoteHost:RemotePort`. Nếu bị từ chối hoặc đứt cáp, khối bật `Err = 1` và tự thử lại sau `ReconnectDelaySec`.
+- **Gói báo danh khi kết nối (`OnConnect`):** Tùy chọn tự động phát một chuỗi định danh (như mã trạm thiết bị) ngay khi vừa thiết lập Socket thành công.
+- **Duy trì nhịp tim (`Heartbeat`):** Định kỳ phát gói ping `HeartbeatPayload` sau mỗi `HeartbeatIntervalSec` giây để giữ thông đường truyền qua các bộ định tuyến NAT/Firewall.
+- **Phát dữ liệu tức thời:** Khi có sườn lên ở chân `Send`, khối đóng gói chuỗi dữ liệu (kèm ký tự kết thúc khung `FramingDelimiter`) và gửi đi qua cổng mạng.
 
 ---
 
@@ -84,14 +78,74 @@ stateDiagram-v2
 
 **Bài toán:** Duy trì kết nối Socket liên tục tới máy chủ xưởng `192.168.1.200:9100`, gửi chuỗi báo danh `"REG,SYNX_LINE2"` ngay khi kết nối, bắn gói giữ nhịp `"PING"` mỗi `30 s`, và đẩy dòng dữ liệu cân `"WT,{device},{val},KG\r\n"` kết thúc bằng `CRLF` mỗi khi khối [`MB_READ`](/vi/blocks/mb-read) báo có kết quả cân mới (`Valid`).
 
-```mermaid
-flowchart LR
-    MBR["MB_READ: Scale_Indicator<br/>ID: 5 | FC 03 | On Trig"]
-    TCP["TCP_CLIENT: Line2_Collector<br/>192.168.1.200:9100 | CRLF"]
-    MBR -- "Valid (0 → 1) → Send" --> TCP
-    MBR -- "Weight_Kg → DataIn" --> TCP
-    TCP -- "Conn" --> LAMP["DIRECT_WRITE: DO1_ServerLinkLed"]
-```
+<div class="synx-node-chain">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,5 L14,5 M14,5 L10,2 M14,5 L10,8 M14,11 L2,11 M2,11 L6,8 M2,11 L6,14" /></svg>
+        <span>MB_READ</span>
+      </div>
+      <span class="synx-node-status is-live">● RS485 #1</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Slave 5 • FC 03</span>
+        <span class="synx-node-alias">Đầu Cân Điện Tử</span>
+        <span class="synx-node-val">Weight_Kg REAL</span>
+      </div>
+      <div class="synx-node-pin is-out">Valid ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">SEND</span>
+  </div>
+
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,5 L14,5 M14,5 L10,2 M14,5 L10,8 M14,11 L2,11 M2,11 L6,8 M2,11 L6,14" /></svg>
+        <span>TCP_CLIENT</span>
+      </div>
+      <span class="synx-node-status is-active">● PORT 9100</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● Send</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">192.168.1.200:9100</span>
+        <span class="synx-node-alias">Bản Ghi ASCII CRLF</span>
+        <span class="synx-node-val">WT,{dev},{val},KG</span>
+      </div>
+      <div class="synx-node-pin is-out">Conn ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">CONNECTED</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-pass">● DO1 = 1</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DO1 • Link LED</span>
+        <span class="synx-node-alias">Đèn Báo Kết Nối</span>
+        <span class="synx-node-val">Server Sẵn Sàng</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 **Các bước cấu hình:**
 1. Kéo khối **`TCP_CLIENT`** ra vùng vẽ và cài đặt trong hộp thoại:

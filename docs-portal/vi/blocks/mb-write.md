@@ -76,17 +76,13 @@ Khối `MB_WRITE` tự động đồng bộ hệ thống chân cắm ngõ vào b
 
 ---
 
-## 4. Máy Trạng thái & Biểu đồ Giao dịch
+## 4. Cơ chế Kích hoạt & Xác nhận Lệnh Ghi
 
-```mermaid
-stateDiagram-v2
-    [*] --> Idle : "Sẵn sàng (Busy = 0, Done = 0)"
-    Idle --> Transmitting : "Sườn lên Trig ↑ hoặc COV Δ ≥ Deadband hoặc Chu kỳ Cyclic [Busy ← 1]"
-    Transmitting --> Completed : "Nhận Echo hợp lệ + Đúng CRC-16 [Busy ← 0, Done ← 1 (1 chu kỳ), Error ← 0]"
-    Transmitting --> Faulted : "Quá hạn TimeoutMs hoặc Mã ngoại lệ [Busy ← 0, Error ← 1, ErrCode ← 1..4]"
-    Completed --> Idle : "Chu kỳ quét kế tiếp [Done ← 0]"
-    Faulted --> Transmitting : "Có sự kiện kích hoạt mới [Busy ← 1]"
-```
+Khối `MB_WRITE` thực hiện chu trình phát lệnh ghi chấp hành an toàn trên bus RS-485:
+- **Thời điểm phát lệnh:** Kích hoạt theo sườn lên chân `Trig`, theo chu kỳ `CyclicIntervalMs`, hoặc khi dữ liệu đầu vào biến thiên vượt ngưỡng (`Δ ≥ Deadband`).
+- **Trạng thái Đang bận (`Busy = 1`):** Khi lệnh đang truyền trên bus, khối bật `Busy = 1` để ngăn chồng chéo gói tin.
+- **Xác nhận Thành công (`Done = 1`):** Khi nhận được bản tin Echo phản hồi hợp lệ từ Slave, chân `Done` phát 1 xung báo thành công và xóa cờ `Busy`.
+- **Cảnh báo Lỗi (`Error = 1`):** Nếu quá thời gian `TimeoutMs` hoặc Slave trả mã ngoại lệ, chân `Error` bật lên kèm mã lỗi `ErrCode (1..4)`.
 
 ---
 
@@ -104,15 +100,74 @@ stateDiagram-v2
 
 **Bài toán:** Nhận gói tin JSON phân hướng kiện hàng `{"grid": 4, "color": 2}` từ hệ thống điều phối kho qua khối [`MQTT_SUB`](/vi/blocks/mqtt-sub), lập tức bật sáng đèn hướng dẫn tại ô chia hàng số `#4` trên bộ điều khiển RS-485 (`SlaveId = 3`) đồng thời tự động tắt đèn của ô trước đó.
 
-```mermaid
-flowchart LR
-    SUB["MQTT_SUB: synaptix/sorter1/cmd"]
-    W["MB_WRITE: Dàn Đèn Sort-to-Light<br/>ID: 3 | ChannelIndexed (CH 1..9, Độc quyền)"]
-    SUB -- "Valid (0 → 1)" --> W
-    SUB -- "grid (INT16)" --> W
-    SUB -- "color (INT16)" --> W
-    W -- "Error" --> FAULT["DIRECT_WRITE: DO3_BusFaultBeacon"]
-```
+<div class="synx-node-chain">
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,14 L8,8 M5,10 A4,4 0 0 1 11,10 M3,7.5 A7,7 0 0 1 13,7.5 M1.5,5 A9.5,9.5 0 0 1 14.5,5" /></svg>
+        <span>MQTT_SUB</span>
+      </div>
+      <span class="synx-node-status is-active">● FIFO</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">sorter1/cmd</span>
+        <span class="synx-node-alias">Lệnh Chia Hàng</span>
+        <span class="synx-node-val">{grid: 4, color: 2}</span>
+      </div>
+      <div class="synx-node-pin is-out">Valid ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">TRIG</span>
+  </div>
+
+  <div class="synx-canvas-node is-direct">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,5 L14,5 M14,5 L10,2 M14,5 L10,8 M14,11 L2,11 M2,11 L6,8 M2,11 L6,14" /></svg>
+        <span>MB_WRITE</span>
+      </div>
+      <span class="synx-node-status is-active">● EXCLUSIVE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● Trig</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">RS-485 #1 • Slave 3</span>
+        <span class="synx-node-alias">Ghi Kênh Độc Quyền</span>
+        <span class="synx-node-val">Channel 4 • Color 2</span>
+      </div>
+      <div class="synx-node-pin is-out">Done ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">CHUTE_4</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● LIT</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Sort-to-Light</span>
+        <span class="synx-node-alias">Sáng Đèn Ô Số #4</span>
+        <span class="synx-node-val">Tự Động Tắt Ô Trước</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 **Các bước cấu hình:**
 1. Cấu hình khối [`MQTT_SUB`](/vi/blocks/mqtt-sub) lắng nghe topic `synaptix/sorter1/cmd` (`QueueMode = FIFO`) với 2 chân ra động `grid` (`INT16`) và `color` (`INT16`).

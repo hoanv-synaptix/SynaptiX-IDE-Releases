@@ -51,19 +51,13 @@ Click **`[ Configure TCP Client... ]`** (or double-click the node) to open the *
 
 ---
 
-## 4. Persistent Socket & Keep-Alive State Machine
+## 4. Persistent Socket & Heartbeat Rules
 
-```mermaid
-stateDiagram-v2
-    [*] --> Disconnected : "Boot (Conn = 0)"
-    Disconnected --> Connecting : "Attempt TCP Handshake to RemoteHost:RemotePort"
-    Connecting --> Disconnected : "Refused / Timeout [Err ← 1, Wait ReconnectDelaySec]"
-    Connecting --> Connected : "SYN-ACK Established [Conn ← 1, Err ← 0]"
-    Connected --> Connected : "OnConnect RegistrationPacket (if enabled)"
-    Connected --> Connected : "Every HeartbeatIntervalSec → TX HeartbeatPayload"
-    Connected --> Connected : "Send ↑ → TX [Prefix] + Payload + FramingDelimiter [Done ← 1]"
-    Connected --> Disconnected : "Socket Reset / Cable Pull [Conn ← 0, Err ← 1]"
-```
+The `TCP_CLIENT` block maintains an active bidirectional socket stream to remote industrial endpoints:
+- **Automatic Reconnection:** Automatically attempts a TCP handshake to `RemoteHost:RemotePort`. If refused or disconnected, it asserts `Err = 1` and retries after `ReconnectDelaySec`.
+- **On-Connect Registration:** Optionally transmits an initial device identification frame as soon as the socket opens.
+- **Heartbeat Keep-Alive:** Transmits periodic `HeartbeatPayload` frames every `HeartbeatIntervalSec` seconds to maintain NAT table bindings and detect half-open sockets.
+- **Immediate Data Transmission:** When pin `Send` transitions high, the block serializes the outbound payload (with framing delimiters) and pushes it out over the network.
 
 ---
 
@@ -84,14 +78,74 @@ stateDiagram-v2
 
 **Objective:** Maintain a persistent TCP connection to `192.168.1.200:9100` with an `OnConnect` station registration banner `"REG,SYNX_LINE2"`, send `"PING"` every `30 s`, and transmit a `CRLF`-terminated ASCII weight record `"WT,{device},{val},KG\r\n"` whenever [`MB_READ`](/blocks/mb-read) signals a `Valid` reading.
 
-```mermaid
-flowchart LR
-    MBR["MB_READ: Scale_Indicator<br/>ID: 5 | FC 03 | On Trig"]
-    TCP["TCP_CLIENT: Line2_Collector<br/>192.168.1.200:9100 | CRLF"]
-    MBR -- "Valid (0 → 1) → Send" --> TCP
-    MBR -- "Weight_Kg → DataIn" --> TCP
-    TCP -- "Conn" --> LAMP["DIRECT_WRITE: DO1_ServerLinkLed"]
-```
+<div class="synx-node-chain">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,5 L14,5 M14,5 L10,2 M14,5 L10,8 M14,11 L2,11 M2,11 L6,8 M2,11 L6,14" /></svg>
+        <span>MB_READ</span>
+      </div>
+      <span class="synx-node-status is-live">● RS485 #1</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Slave 5 • FC 03</span>
+        <span class="synx-node-alias">Checkweigher</span>
+        <span class="synx-node-val">Weight_Kg REAL</span>
+      </div>
+      <div class="synx-node-pin is-out">Valid ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">SEND</span>
+  </div>
+
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,5 L14,5 M14,5 L10,2 M14,5 L10,8 M14,11 L2,11 M2,11 L6,8 M2,11 L6,14" /></svg>
+        <span>TCP_CLIENT</span>
+      </div>
+      <span class="synx-node-status is-active">● PORT 9100</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● Send</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">192.168.1.200:9100</span>
+        <span class="synx-node-alias">ASCII Record CRLF</span>
+        <span class="synx-node-val">WT,{dev},{val},KG</span>
+      </div>
+      <div class="synx-node-pin is-out">Conn ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">CONNECTED</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-pass">● DO1 = 1</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DO1 • Link LED</span>
+        <span class="synx-node-alias">Server Link LED</span>
+        <span class="synx-node-val">TCP Channel Healthy</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 **Configuration Steps:**
 1. Drop **`TCP_CLIENT`** on the canvas and configure:

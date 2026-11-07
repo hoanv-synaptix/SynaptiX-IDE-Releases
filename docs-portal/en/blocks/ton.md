@@ -39,22 +39,9 @@ The **`TON`** (**Timer On-Delay**) block delays the activation of its boolean ou
 
 ---
 
-## 4. State Machine / Timing Diagram
+## 4. Timing Rules & Waveform Phases
 
-The state machine and timing waveform trace below show both **aborted chatter** (`t1..t2`, shorter than `PresetMs`, keeping `Q = 0`) and **sustained activation** (`t3..t5`, reaching `ET == PresetMs` at `t4` to assert `Q = 1` until `In` drops at `t5`):
-
-```mermaid
-stateDiagram-v2
-    [*] --> Idle : "In == 0"
-    Idle : "IDLE (Q = 0, ET = 0 ms)"
-    Timing : "TIMING ON-DELAY (Q = 0, 0 < ET < PresetMs)"
-    DoneOn : "ENERGIZED (Q = 1, ET = PresetMs)"
-
-    Idle --> Timing : "In: 0 -> 1 (Start Monotonic Timer)"
-    Timing --> Idle : "In: 1 -> 0 before PresetMs (Reset ET = 0, Q = 0)"
-    Timing --> DoneOn : "ET >= PresetMs while In == 1 (Assert Q = 1)"
-    DoneOn --> Idle : "In: 1 -> 0 (Immediate Reset Q = 0, ET = 0)"
-```
+The timing table below illustrates the difference between **aborted chatter** (shorter than `PresetMs`, keeping `Q = 0`) and **sustained activation** (reaching `ET == PresetMs` to assert `Q = 1` until `In` drops):
 
 | Waveform Phase | Input `In` | Elapsed Time `ET` | Output `Q` | Canvas Status Pill |
 | :--- | :--- | :--- | :--- | :--- |
@@ -102,12 +89,71 @@ In an underground wastewater sump pit, surface turbulence causes the high-level 
 4. Wire `TON.Q` → **[`MQTT_PUB`](/blocks/mqtt-pub)** (`Topic = "plant/sump/pump_start"`) if cloud notification is desired on confirmed pump startup.
 5. Press `F5` to test: toggle `DI0` `0 → 1` for `2 seconds` then back to `0`—verify `ET` resets immediately to `0 ms` and `DO0` stays `0`. Next, toggle `DI0` `0 → 1` and hold for `5 seconds`—verify `Q = ON` illuminates and `DO0` energizes cleanly.
 
-```mermaid
-flowchart LR
-    IN_FLT["INPUT: DI0<br/>(Sump High Float)"]
-    TON_DB["TON Timer<br/>(Preset = 5 s · OutputTag = DO0)"]
-    MQTT_NTF["MQTT_PUB<br/>(plant/sump/pump_start)"]
+<div class="synx-node-chain">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● LIVE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DI0 • BOOL</span>
+        <span class="synx-node-alias">High Float Switch</span>
+        <span class="synx-node-val">Sump Level Full</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
 
-    IN_FLT -- "Out -> In" --> TON_DB
-    TON_DB -- "Q -> Trig" --> MQTT_NTF
-```
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">TRUE</span>
+  </div>
+
+  <div class="synx-canvas-node is-timer">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 A6.5,6.5 0 1 1 1.5,8 M8,1.5 L8,8 L11,10" /></svg>
+        <span>TON TIMER</span>
+      </div>
+      <span class="synx-node-status is-active">● 5000 ms</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">PT = 5 s • DO0</span>
+        <span class="synx-node-alias">Anti-Slosh Dwell</span>
+        <span class="synx-node-val">Q = ON after 5s</span>
+      </div>
+      <div class="synx-node-pin is-out">Q ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">PULSE</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,14 L8,8 M5,10 A4,4 0 0 1 11,10 M3,7.5 A7,7 0 0 1 13,7.5 M1.5,5 A9.5,9.5 0 0 1 14.5,5" /></svg>
+        <span>MQTT_PUB</span>
+      </div>
+      <span class="synx-node-status is-active">● TELEMETRY</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● Trig</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Topic QoS 1</span>
+        <span class="synx-node-alias">Pump Start Event</span>
+        <span class="synx-node-val">Publish Cloud Alert</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>

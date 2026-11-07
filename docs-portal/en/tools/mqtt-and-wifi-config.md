@@ -49,20 +49,122 @@ When an industrial edge node loses 24V DC power or suffers a severed WAN fiber l
 
 To comply with **IEC 62443-4-2** cryptographic transport requirements, SynaptiX IDE includes an integrated X.509 certificate inspector and chunked provisioning engine supporting both **One-Way Server TLS** and **Two-Way Mutual TLS (`mTLS`)**:
 
-```mermaid
-sequenceDiagram
-    participant IDE as "SynaptiX IDE (Ctrl+Shift+M)"
-    participant Edge as "SynaptiX Edge Device"
-    participant Broker as "Enterprise MQTT Broker (:8883)"
+<div class="synx-node-chain" style="margin-bottom: 12px;">
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>STEP 1</span>
+      </div>
+      <span class="synx-node-status">X.509 PARSE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Parse X.509</span>
+        <span class="synx-node-alias">Validate Subject</span>
+        <span class="synx-node-val">SHA-256 Digest</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
 
-    IDE->>IDE: Parse X.509 PEM/CRT/PFX (Verify Subject, Expiry & SHA-256)
-    IDE->>Edge: Provision Root CA + Client Cert + Private Key (Secure Chunks)
-    Edge->>Broker: TCP SYN (:8883) + TLS ClientHello (SNI Hostname, TLS 1.2/1.3)
-    Broker-->>Edge: ServerHello + Server Certificate Chain
-    Edge->>Edge: Verify Broker Chain against Root CA & SAN/Hostname
-    Edge->>Broker: Client Certificate + Proof-of-Possession Signature (mTLS)
-    Broker-->>Edge: Cipher Change + Encrypted MQTT CONNACK (0x00 Accepted)
-```
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Flash</span>
+  </div>
+
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,13 L5,13 L5,9.5 L8,9.5 L8,6 L11,6 L11,3 L14,3" /></svg>
+        <span>STEP 2</span>
+      </div>
+      <span class="synx-node-status">TRANSFER</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">IDE ➔ Device</span>
+        <span class="synx-node-alias">Chunked Key Write</span>
+        <span class="synx-node-val">CA + Client Cert + Key</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">:8883</span>
+  </div>
+
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M10,1 L5,8.5 L8.5,8.5 L6,15 L11,7.5 L7.5,7.5 Z" /></svg>
+        <span>STEP 3</span>
+      </div>
+      <span class="synx-node-status">TLS 1.3</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">TLS Handshake</span>
+        <span class="synx-node-alias">Port 8883 MQTTS</span>
+        <span class="synx-node-val">TCP SYN + ClientHello</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">mTLS</span>
+  </div>
+
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 L13.5,4 L13.5,9.5 Q13.5,13.5 8,15 Q2.5,13.5 2.5,9.5 L2.5,4 Z" /></svg>
+        <span>STEP 4</span>
+      </div>
+      <span class="synx-node-status">MUTUAL</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">mTLS Verify</span>
+        <span class="synx-node-alias">Mutual Authentication</span>
+        <span class="synx-node-val">Verify CA &amp; Sign</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Connack</span>
+  </div>
+
+  <div class="synx-canvas-node is-step is-done">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>STEP 5</span>
+      </div>
+      <span class="synx-node-status is-active">● CONNECTED</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Encrypted Session</span>
+        <span class="synx-node-alias">MQTT CONNACK</span>
+        <span class="synx-node-val">Session OK (0x00)</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 1. **Root CA Certificate (`BrowseCaCert`):**
    - Load `.crt`, `.cer`, or `.pem` Root CA files (e.g., *Amazon Root CA 1*, *DigiCert Global Root G2*, or your internal plant PKI Root CA).

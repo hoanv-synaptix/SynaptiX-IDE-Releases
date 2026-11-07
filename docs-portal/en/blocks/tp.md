@@ -41,22 +41,9 @@ The **`TP`** (**Timer Pulse**) block is a **monostable, non-retriggerable one-sh
 
 ---
 
-## 4. State Machine / Timing Diagram
+## 4. Monostable Pulse Rules & Protection Guarantees
 
-The state machine below highlights both immunity to mid-pulse input bounce (`PulseActive` ignores `In` transitions) and the `WaitRelease` lock-out state when an operator or jammed sensor holds `In == 1` past `PresetMs`:
-
-```mermaid
-stateDiagram-v2
-    [*] --> ArmedIdle : "In == 0"
-    ArmedIdle : "ARMED IDLE (Q = 0, ET = 0 ms)"
-    PulseActive : "PULSE ACTIVE (Q = 1, 0 < ET < PresetMs · Ignores In)"
-    WaitRelease : "WAIT RELEASE (Q = 0, ET = PresetMs · In still 1)"
-
-    ArmedIdle --> PulseActive : "In: 0 -> 1 (Assert Q = 1, Start ET)"
-    PulseActive --> ArmedIdle : "ET >= PresetMs AND In == 0 (Drop Q = 0, Reset ET = 0)"
-    PulseActive --> WaitRelease : "ET >= PresetMs AND In == 1 (Drop Q = 0, Hold Lockout)"
-    WaitRelease --> ArmedIdle : "In: 1 -> 0 (Re-arm for Next Shot)"
-```
+The table below highlights both immunity to mid-pulse input bounce (the `TP` block ignores `In` transitions while firing) and the safe lock-out state when an input remains stuck high (`In == 1`) beyond `PresetMs`:
 
 | Scenario | `In` Behavior | `Q` Output Duration | Protection Guarantee |
 | :--- | :--- | :--- | :--- |
@@ -102,16 +89,119 @@ As bottles pass a retro-reflective photo-eye (`DI0`) on a filling conveyor, a hi
 3. Wire `TP.Q` → **[`ACTION`](/blocks/action)** (`ActionType = INC_COUNTER`, `TargetTag = VREG_R1`, `ActionParam = 1`) to increment the dosed bottle totalizer on every completed shot.
 4. Press `F5` to test: set `DI1 = 1`, toggle `DI0` `0 → 1` and **leave `DI0` at `1`** (simulating a jammed bottle). Verify `DO2` energizes for exactly `750 ms` and then drops to `0`, refusing to dose again until `DI0` returns to `0` and sees the next bottle.
 
-```mermaid
-flowchart LR
-    IN_EYE["INPUT: DI0<br/>(Bottle Photo-Eye)"]
-    TRG_EDGE["TRIGGER: ON_RISE<br/>(ForMs = 15 ms)"]
-    GRD_CONV["GUARD: DI1<br/>(Conveyor Running == 1)"]
-    TP_DOSE["TP Timer<br/>(Preset = 750 ms · OutputTag = DO2)"]
-    ACT_TOT["ACTION: INC_COUNTER<br/>(VREG_R1 += 1)"]
+<div class="synx-node-chain">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● LIVE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DI0 • BOOL</span>
+        <span class="synx-node-alias">Photo Sensor</span>
+        <span class="synx-node-val">Bottle Detection</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
 
-    IN_EYE -- "Out -> In" --> TRG_EDGE
-    TRG_EDGE -- "Out -> In" --> GRD_CONV
-    GRD_CONV -- "Out -> In" --> TP_DOSE
-    TP_DOSE -- "Q -> In" --> ACT_TOT
-```
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">EDGE</span>
+  </div>
+
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M10,1 L5,8.5 L8.5,8.5 L6,15 L11,7.5 L7.5,7.5 Z" /></svg>
+        <span>TRIGGER</span>
+      </div>
+      <span class="synx-node-status is-rise">● ON_RISE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">15 ms Dwell</span>
+        <span class="synx-node-alias">Debounce Filter</span>
+        <span class="synx-node-val">Rising Lead Edge</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">TRUE</span>
+  </div>
+
+  <div class="synx-canvas-node is-guard">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 L13.5,4 L13.5,9.5 Q13.5,13.5 8,15 Q2.5,13.5 2.5,9.5 L2.5,4 Z" /></svg>
+        <span>GUARD</span>
+      </div>
+      <span class="synx-node-status is-pass">● PASS</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DI1 == 1</span>
+        <span class="synx-node-alias">Conveyor Permissive</span>
+        <span class="synx-node-val">Belt In Motion</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">ENABLE</span>
+  </div>
+
+  <div class="synx-canvas-node is-timer">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 A6.5,6.5 0 1 1 1.5,8 M8,1.5 L8,8 L11,10" /></svg>
+        <span>TP TIMER</span>
+      </div>
+      <span class="synx-node-status is-active">● 750 ms</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">PT = 750 ms • DO2</span>
+        <span class="synx-node-alias">Dosing Shot Pulse</span>
+        <span class="synx-node-val">750ms Output Shot</span>
+      </div>
+      <div class="synx-node-pin is-out">Q ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">DONE</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● +1</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">INC VREG_R1</span>
+        <span class="synx-node-alias">Totalizer Count</span>
+        <span class="synx-node-val">Increment Completed</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>

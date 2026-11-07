@@ -41,12 +41,98 @@ The **Logic Graph Canvas** is organized as a high-density, neutral-slate (ANSI/I
 
 Every node on the **Logic Graph Canvas** enforces strict visual and electrical separation between **data values** and **execution events** so invalid topologies are prevented during wire dragging:
 
-```mermaid
-flowchart LR
-    IN["INPUT Node (Tag Value Out)"] -->|"Value Wire (BOOL / INT32 / REAL)"| CMP["COMPARATOR / TRIGGER"]
-    CMP -->|"Event Wire (Execution Pulse)"| GRD["GUARD (Safety Interlock)"]
-    GRD -->|"Gated Event Wire"| ACT["ACTION / Function Block"]
-```
+<div class="synx-node-chain">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● VALUE PIN</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Value Pin</span>
+        <span class="synx-node-alias">SOURCE DATA</span>
+        <span class="synx-node-val">Carries Tag / Register</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Tag Data</span>
+  </div>
+
+  <div class="synx-canvas-node is-comparator">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M3.5,6 L8,9 L3.5,12 M9.5,7 L13,7 M9.5,10.5 L13,10.5" /></svg>
+        <span>CMP / TRIGGER</span>
+      </div>
+      <span class="synx-node-status is-true">● EVAL PIN</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Evaluation</span>
+        <span class="synx-node-alias">CONDITION EVAL</span>
+        <span class="synx-node-val">Threshold / Edge Check</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">TRUE</span>
+  </div>
+
+  <div class="synx-canvas-node is-guard">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 L13.5,4 L13.5,9.5 Q13.5,13.5 8,15 Q2.5,13.5 2.5,9.5 L2.5,4 Z" /></svg>
+        <span>GUARD</span>
+      </div>
+      <span class="synx-node-status is-pass">● GATE PIN</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Event Pin</span>
+        <span class="synx-node-alias">INTERLOCK GATE</span>
+        <span class="synx-node-val">Permissive AND Check</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">ENABLE</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● ACTUATOR</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Execution</span>
+        <span class="synx-node-alias">OUTPUT EXEC</span>
+        <span class="synx-node-val">SET, RESET, DIRECT OUT</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 | Pin / Wire Element | Visual & Type Contract | Wiring Rules |
 | :--- | :--- | :--- |

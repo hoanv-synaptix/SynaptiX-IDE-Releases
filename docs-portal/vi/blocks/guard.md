@@ -49,31 +49,11 @@ Trình biên dịch không cho phép nối chuỗi hai cổng `GUARD` trực ti�
 
 ---
 
-## 4. Máy Trạng thái / Giản đồ Thời gian
+## 4. Quy tắc Khóa Liên động Thời gian thực
 
-Lưu đồ dưới đây mô tả quá trình xét duyệt đồng bộ trong một chu kỳ quét duy nhất của khối `GUARD` khi nhận xung sự kiện đầu vào:
-
-```mermaid
-flowchart LR
-    PULSE["Xung Sự kiện Đi tới<br/>(Chân In có xung)"]
-    READ["Đọc Trạng thái Chốt GuardTag<br/>từ Ảnh Tiến trình"]
-    POL{"Kiểm tra Cờ<br/>Đảo Negate"}
-
-    NORM{"GuardTag != 0 ?<br/>(1 / ON)"}
-    INV{"GuardTag == 0 ?<br/>(NOT · 0 / OFF)"}
-
-    PASS["CHO QUA (PASSED)<br/>Truyền Xung ra Chân Out<br/>(Ngay trong Cùng Chu kỳ)"]
-    BLOCK["CHẶN LẠI (BLOCKED)<br/>Triệt tiêu Xung (Out = Nghỉ)"]
-
-    PULSE --> READ --> POL
-    POL -- "Negate == false" --> NORM
-    POL -- "Negate == true" --> INV
-
-    NORM -- "Đúng" --> PASS
-    NORM -- "Sai" --> BLOCK
-    INV -- "Đúng" --> PASS
-    INV -- "Sai" --> BLOCK
-```
+Trong mỗi chu kỳ quét máy, khối `GUARD` đánh giá điều kiện cho phép theo logic tức thời:
+- **Chế độ Thuận (`Negate = false`):** Xung từ chân `In` chỉ được truyền sang `Out` nếu `GuardTag == 1` (ví dụ: cửa an toàn đã đóng kín `SafetyDoorOk == 1`). Nếu `GuardTag == 0`, xung bị triệt tiêu hoàn toàn.
+- **Chế độ Đảo (`Negate = true`):** Xung chỉ được truyền qua nếu `GuardTag == 0` (ví dụ: không có cờ báo lỗi tồn tại `FaultFlag == 0`). Nếu có lỗi (`GuardTag == 1`), xung bị chặn lại lập tức.
 
 ---
 
@@ -114,21 +94,164 @@ Nút nhấn khởi động chu kỳ dập tại `DI0` điều khiển cuộn hú
    - Chuyển `DI1 = 1` (rào quang thông thoáng), bấm giữ `DI0` `0 → 1` qua `50 ms`: khối `GUARD` báo **CHO QUA**, van `DO0` đóng lên `1`.
    - Đảo `DI1` từ `1 → 0`: Nhánh 2 lập tức cắt `DO0` về `0` ngay ở chu kỳ quét đầu tiên.
 
-```mermaid
-flowchart LR
-    IN_START["INPUT: DI0<br/>(Nút nhấn Khởi động)"]
-    TRG_START["TRIGGER: ON_RISE<br/>(ForMs = 50 ms)"]
-    GRD_CURTAIN["GUARD: DI1<br/>(Rào Quang == 1)"]
-    ACT_DOWN["ACTION: SET_TAG<br/>(DO0 = 1)"]
+<div class="synx-node-chain" style="margin-bottom: 12px;">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● LIVE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DI0 • BOOL</span>
+        <span class="synx-node-alias">Nút Nhấn Khởi Động</span>
+        <span class="synx-node-val">Lệnh Dập Chi Tiết</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
 
-    IN_CURTAIN["INPUT: DI1<br/>(Rào chắn Quang OSSD)"]
-    TRG_BREAK["TRIGGER: ON_FALL<br/>(ForMs = 0 ms)"]
-    ACT_STOP["ACTION: SET_TAG<br/>(DO0 = 0)"]
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">EDGE</span>
+  </div>
 
-    IN_START -- "Out -> In" --> TRG_START
-    TRG_START -- "Out -> In" --> GRD_CURTAIN
-    GRD_CURTAIN -- "Out -> In" --> ACT_DOWN
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M10,1 L5,8.5 L8.5,8.5 L6,15 L11,7.5 L7.5,7.5 Z" /></svg>
+        <span>TRIGGER</span>
+      </div>
+      <span class="synx-node-status is-rise">● ON_RISE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">50 ms Dwell</span>
+        <span class="synx-node-alias">Lọc Dội Phím</span>
+        <span class="synx-node-val">Xác Nhận Nhấn Thật</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
 
-    IN_CURTAIN -- "Out -> In" --> TRG_BREAK
-    TRG_BREAK -- "Out -> In" --> ACT_STOP
-```
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">TRUE</span>
+  </div>
+
+  <div class="synx-canvas-node is-guard">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 L13.5,4 L13.5,9.5 Q13.5,13.5 8,15 Q2.5,13.5 2.5,9.5 L2.5,4 Z" /></svg>
+        <span>GUARD</span>
+      </div>
+      <span class="synx-node-status is-pass">● PASS</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DI1 == 1</span>
+        <span class="synx-node-alias">Rào Quang An Toàn</span>
+        <span class="synx-node-val">Không Có Vật Cản</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">ENABLE</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● SET 1</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DO0 = 1</span>
+        <span class="synx-node-alias">Hạ Trục Ép Dập</span>
+        <span class="synx-node-val">Mở Van Thủy Lực</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
+
+<div class="synx-node-chain" style="margin-top: 12px;">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● OSSD</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DI1 • OSSD</span>
+        <span class="synx-node-alias">Rào Chắn Quang</span>
+        <span class="synx-node-val">Bị Chắn Tia (1 → 0)</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">EDGE</span>
+  </div>
+
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M10,1 L5,8.5 L8.5,8.5 L6,15 L11,7.5 L7.5,7.5 Z" /></svg>
+        <span>TRIGGER</span>
+      </div>
+      <span class="synx-node-status is-rise">● ON_FALL</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">0 ms Instant</span>
+        <span class="synx-node-alias">Cắt Khẩn Tức Thì</span>
+        <span class="synx-node-val">Sườn Xuống Nguy Hiểm</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">ABORT</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-pass">● SET 0</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DO0 = 0</span>
+        <span class="synx-node-alias">Dừng Khẩn Cấp Trục Ép</span>
+        <span class="synx-node-val">Triệt Tiêu Áp Lực Tức Thì</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>

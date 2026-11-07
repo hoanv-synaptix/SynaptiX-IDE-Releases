@@ -15,33 +15,13 @@ Mọi thiết bị **Bộ điều khiển Biên SynaptiX (SynaptiX Edge Controll
 
 Nhấn tổ hợp phím `Ctrl+Shift+B` từ bất kỳ không gian làm việc nào (hoặc vào menu **Thiết bị -> Cấu hình Cổng RS-485...**) để mở hộp thoại **Cấu hình Cổng RS-485 Modbus**. Tùy theo cấu hình phần cứng (Device Preset) đang chọn, SynaptiX IDE sẽ hiển thị từ `RS-485 #1` đến `RS-485 #4` (`PortIndex 0..3`) tại danh sách cổng bên trái.
 
-```mermaid
-flowchart LR
-    subgraph Field["Bus Cảm biến Hiện trường (RS-485 #1 - Master)"]
-        M1["Đồng hồ Điện năng (ID: 1)"]
-        M2["Cảm biến Nhiệt/Ẩm (ID: 2)"]
-        M3["Biến tần VFD (ID: 3)"]
-    end
+### Quy trình 3 Bước Cấu hình Cổng RS-485 Nhanh
 
-    subgraph Edge["Bộ điều khiển Biên SynaptiX"]
-        P1["UART/DMA Cổng 1 (Master Poller)"]
-        RAM["Bộ nhớ Tag Tất định (DI, DO, AI, VREG, COUNTER)"]
-        P2["UART/DMA Cổng 2 (Slave ID: 1..247)"]
-        TCP["Ethernet / Wi-Fi (Modbus TCP :502)"]
-        P1 --> RAM
-        RAM --> P2
-        RAM --> TCP
-    end
-
-    subgraph Plant["Tầng Giám sát & Điều hành Thượng tầng"]
-        HMI["Màn hình HMI Tại chỗ (RS-485 Master)"]
-        SCADA["Ignition / WinCC / Kepware"]
-    end
-
-    Field <-->|"FC01..04 / FC05..16"| P1
-    HMI <-->|"Modbus RTU"| P2
-    SCADA <-->|"Modbus TCP :502"| TCP
-```
+1. **Bước 1 — Mở Hộp thoại:** Nhấn `Ctrl+Shift+B` trên bàn phím.
+2. **Bước 2 — Chỉ định Vai trò Vận hành:**
+   - Chọn **Modbus RTU Master**: Dùng khi bạn cần chủ động đọc dữ liệu từ đồng hồ điện, biến tần, cảm biến qua các khối [`MB_READ`](/vi/blocks/mb-read) và [`MB_WRITE`](/vi/blocks/mb-write).
+   - Chọn **Modbus RTU Slave**: Dùng khi cần cấp dữ liệu lên màn hình HMI cảm ứng tại tủ điện hoặc hệ thống SCADA qua địa chỉ Slave ID (`1..247`).
+3. **Bước 3 — Đặt Tốc độ Baud & Lưu:** Chọn Baudrate (mặc định `9600` hoặc `19200`), Parity (`None`, `Even`, `Odd`) và nhấn nút **Lưu Cấu hình** để áp dụng.
 
 ### 1.1 Vai trò Vận hành Từng Cổng: Master so với Slave
 

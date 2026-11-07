@@ -50,30 +50,12 @@ The **`ACTION`** block is the terminal execution sink of a Core Rule Pipeline ne
 
 ---
 
-## 4. State Machine / Timing Diagram
+## 4. Single-Scan Execution Rules
 
-The flow diagram below illustrates how `ACTION` validates target compatibility during authoring and executes atomic memory/event commits at runtime:
-
-```mermaid
-flowchart LR
-    TRIG["Incoming Pulse on In<br/>(Rule Stages 1-3 Passed)"]
-    MODE{"Dispatch by<br/>ActionType"}
-
-    SET["SET_TAG<br/>TargetTag := ActionParam<br/>(BOOL / INT32 / IEEE-754 REAL)"]
-    TOG["TOGGLE_TAG<br/>TargetTag := (TargetTag == 0) ? 1 : 0"]
-    INC["INC_COUNTER<br/>TargetTag := TargetTag + ActionParam"]
-    SCL["SCALE_TAG / WRITE_REMOTE<br/>Commit Scaled or Remote Value"]
-    EVT["SEND_ALARM / LOG_EVENT<br/>Push Timestamped Diagnostic Record"]
-
-    COMMIT["Update Process Image &amp;<br/>Drive Physical DO / Telemetry"]
-
-    TRIG --> MODE
-    MODE -- "SET_TAG" --> SET --> COMMIT
-    MODE -- "TOGGLE_TAG" --> TOG --> COMMIT
-    MODE -- "INC_COUNTER" --> INC --> COMMIT
-    MODE -- "SCALE / REMOTE" --> SCL --> COMMIT
-    MODE -- "ALARM / LOG" --> EVT --> COMMIT
-```
+The `ACTION` block serves as the terminal actuation stage in the 4-stage rule pipeline. The moment an event pulse arrives at pin `In`:
+- **Immediate Commit:** Value assignment (`SET_TAG`), state toggling (`TOGGLE_TAG`), or counter increments (`INC_COUNTER`) are written to `TargetTag` memory in the current scan cycle.
+- **Strict Type Preservation:** Writes respect the exact physical type contract of `TargetTag` (`INT32`, `REAL`, or `BOOL`).
+- **Physical Output Driving:** Changes to `DO` tags are propagated to physical hardware output terminals during the process image write step at the end of the scan cycle.
 
 ---
 
@@ -115,14 +97,116 @@ A momentary panel pushbutton on `DI2` controls a mixing agitator contactor (`DO1
 3. Drag a second fan-out wire from the same `TRIGGER.Out` pin to a second **`ACTION`** block configured with `ActionType = INC_COUNTER`, `TargetTag = VREG_R0`, and `ActionParam = 1` (`CustomLabel = "Count Operation"`).
 4. Press `F5` to test in the **Simulator**: click the `DI2` toggle button (`0 → 1` for `60 ms`) repeatedly and verify `DO1` alternates cleanly `0 → 1 → 0 → 1` while `VREG_R0` increments `1 → 2 → 3` without double-counting contact bounce.
 
-```mermaid
-flowchart LR
-    IN_BTN["INPUT: DI2<br/>(Mixer Pushbutton)"]
-    TRG_EDGE["TRIGGER: ON_RISE<br/>(ForMs = 60 ms)"]
-    ACT_TOG["ACTION: TOGGLE_TAG<br/>(TOGGLE DO1)"]
-    ACT_CNT["ACTION: INC_COUNTER<br/>(VREG_R0 += 1)"]
+<div class="synx-node-chain" style="margin-bottom: 12px;">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● DI2</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Panel Pushbutton</span>
+        <span class="synx-node-alias">Mixer Trigger (NO)</span>
+        <span class="synx-node-val">DI2 • BOOL</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
 
-    IN_BTN -- "Out -> In" --> TRG_EDGE
-    TRG_EDGE -- "Out -> In" --> ACT_TOG
-    TRG_EDGE -- "Out -> In (Fan-Out)" --> ACT_CNT
-```
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">DI2 Raw</span>
+  </div>
+
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M10,1 L5,8.5 L8.5,8.5 L6,15 L11,7.5 L7.5,7.5 Z" /></svg>
+        <span>TRIGGER</span>
+      </div>
+      <span class="synx-node-status is-rise">● 60ms DWELL</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Contact Debounce</span>
+        <span class="synx-node-alias">Rising Edge Pulse</span>
+        <span class="synx-node-val">ON_RISE • 60 ms</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">PULSE</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● TOGGLE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Toggle Agitator</span>
+        <span class="synx-node-alias">Motor Contactor</span>
+        <span class="synx-node-val">TOGGLE DO1</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
+
+<div class="synx-node-chain" style="margin-top: 12px;">
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M10,1 L5,8.5 L8.5,8.5 L6,15 L11,7.5 L7.5,7.5 Z" /></svg>
+        <span>TRIGGER</span>
+      </div>
+      <span class="synx-node-status is-rise">● FAN-OUT</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Fan-Out Wire</span>
+        <span class="synx-node-alias">Shared Strobe</span>
+        <span class="synx-node-val">TRIGGER.Out</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">PULSE</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● COUNTER</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Cycle Totalizer</span>
+        <span class="synx-node-alias">Retentive Register</span>
+        <span class="synx-node-val">VREG_R0 += 1</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>

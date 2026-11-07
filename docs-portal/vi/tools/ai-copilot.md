@@ -29,15 +29,98 @@ Khác biệt hoàn toàn với các công cụ hỏi đáp AI rời rạc trên 
 
 ## 2. Các Hạng mục Mạch Logic AI Copilot Có thể Thiết kế
 
-```mermaid
-flowchart LR
-    Prompt["Đặc tả Kỹ thuật Ngôn ngữ Tự nhiên"] --> AI["SynaptiX AI Copilot (Ctrl+Space)"]
-    AI --> Tags["Cấp phát Tag & Đơn vị (BOOL / INT32 / REAL)"]
-    AI --> Core["Chuỗi Luật 4 Tầng (INPUT -> TRIGGER -> COMPARATOR -> GUARD -> ACTION)"]
-    AI --> FB["Khối Trạng thái (TON, TOF, TP, CYCLE_TIMER, CTU, CTD, SCALE)"]
-    AI --> IIoT["Fieldbus & Đám mây (MB_READ, MB_WRITE, DIRECT_WRITE, MQTT_PUB, MQTT_SUB)"]
-    Tags & Core & FB & IIoT --> Preview["Xem trước Đề xuất Trực quan (Áp dụng / Hủy / Ctrl+Z)"]
-```
+<div class="synx-node-chain" style="margin-bottom: 12px;">
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>BƯỚC 1</span>
+      </div>
+      <span class="synx-node-status">PROMPT</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Mô Tả Kỹ Thuật</span>
+        <span class="synx-node-alias">Ngôn Ngữ Tự Nhiên</span>
+        <span class="synx-node-val">Yêu Cầu Bài Toán</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Infer</span>
+  </div>
+
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M3.5,6 L8,9 L3.5,12 M9.5,7 L13,7 M9.5,10.5 L13,10.5" /></svg>
+        <span>BƯỚC 2</span>
+      </div>
+      <span class="synx-node-status">REASONING</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">AI Suy Luận</span>
+        <span class="synx-node-alias">Ngữ Cảnh &amp; Giới Hạn</span>
+        <span class="synx-node-val">Phần Cứng Target</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Generate</span>
+  </div>
+
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 L13.5,4 L13.5,9.5 Q13.5,13.5 8,15 Q2.5,13.5 2.5,9.5 L2.5,4 Z" /></svg>
+        <span>BƯỚC 3</span>
+      </div>
+      <span class="synx-node-status">SYNTHESIS</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Sinh Dự Án</span>
+        <span class="synx-node-alias">Đồ Thị Logic FBD</span>
+        <span class="synx-node-val">Tags • Rules • Blocks</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Preview</span>
+  </div>
+
+  <div class="synx-canvas-node is-step is-done">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>BƯỚC 4</span>
+      </div>
+      <span class="synx-node-status is-active">● DIFF VIEW</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Xem Trước &amp; Duyệt</span>
+        <span class="synx-node-alias">So Sánh Trực Quan</span>
+        <span class="synx-node-val">Apply • Ctrl+Z Undo</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 | Phân hệ Tự động hóa | Kết quả Đầu ra Được Sinh tự động |
 | :--- | :--- |

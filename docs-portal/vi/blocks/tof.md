@@ -39,22 +39,9 @@ Khối **`TOF`** (**Timer Off-Delay — Hẹn giờ Trễ Ngắt**) đóng ngõ 
 
 ---
 
-## 4. Máy Trạng thái / Giản đồ Thời gian
+## 4. Quy tắc Trễ Ngắt & Giản đồ Pha Tín hiệu
 
-Sơ đồ trạng thái dưới đây thể hiện đầy đủ quy trình đóng tức thì (`In = 1`), đếm duy trì sau sườn xuống (`In: 1 → 0`), hủy đếm khi kích lại sớm (`In: 0 → 1`) và ngắt hoàn toàn khi hết thời gian đặt:
-
-```mermaid
-stateDiagram-v2
-    [*] --> IdleOff : "In == 0 (Khởi đầu)"
-    IdleOff : "NGHỈ TẮT (Q = 0, ET = 0 ms)"
-    ActiveHold : "ĐANG CẤP TÍN HIỆU (Q = 1, ET = 0 ms)"
-    OffTiming : "ĐANG GIỮ TRỄ NGẮT (Q = 1, 0 < ET < PresetMs)"
-
-    IdleOff --> ActiveHold : "In: 0 -> 1 (Đóng Tức thì Q = 1)"
-    ActiveHold --> OffTiming : "In: 1 -> 0 (Bắt đầu Đếm Trễ Ngắt, Giữ Q = 1)"
-    OffTiming --> ActiveHold : "In: 0 -> 1 trước PresetMs (Hủy Đếm, Xóa ET = 0, Giữ liền Q = 1)"
-    OffTiming --> IdleOff : "ET >= PresetMs khi In == 0 (Ngắt Q = 0)"
-```
+Bảng dưới đây thể hiện chi tiết quy trình đóng tức thì (`In = 1`), đếm duy trì sau sườn xuống (`In: 1 → 0`), hủy đếm khi kích lại sớm (`In: 0 → 1`) và ngắt an toàn khi hết thời gian đặt:
 
 | Giai đoạn Xung | Ngõ vào `In` | Thời gian Trễ Ngắt `ET` | Ngõ ra `Q` | Trạng thái Vận hành Thực tế |
 | :--- | :--- | :--- | :--- | :--- |
@@ -104,12 +91,71 @@ Khi biến tần trục chính máy phay CNC vận hành (tiếp điểm báo ch
    - Đảo `DI1` lên lại `1` khi chưa hết giờ: `ET` xóa về `0` và `DO1` giữ nguyên mức `1` mượt mà.
    - Đảo `DI1` về `0` và chờ hết trọn thời gian đặt: `DO1` ngắt gọn về `0`.
 
-```mermaid
-flowchart LR
-    IN_SPD["INPUT: DI1<br/>(Báo Chạy Trục chính CNC)"]
-    TOF_FAN["TOF Timer<br/>(Preset = 2 min · OutputTag = DO1)"]
-    ACT_LOG["ACTION: LOG_EVENT<br/>(Ghi Nhật ký Hoàn tất Làm mát)"]
+<div class="synx-node-chain">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● LIVE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DI1 • BOOL</span>
+        <span class="synx-node-alias">Trục Chính Chạy</span>
+        <span class="synx-node-val">Biến Tần CNC</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
 
-    IN_SPD -- "Out -> In" --> TOF_FAN
-    TOF_FAN -- "Q -> In" --> ACT_LOG
-```
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">TRUE</span>
+  </div>
+
+  <div class="synx-canvas-node is-timer">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 A6.5,6.5 0 1 1 1.5,8 M8,1.5 L8,8 L11,10" /></svg>
+        <span>TOF TIMER</span>
+      </div>
+      <span class="synx-node-status is-active">● 120,000 ms</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">PT = 2 min • DO1</span>
+        <span class="synx-node-alias">Làm Mát Sau Dừng</span>
+        <span class="synx-node-val">Duy Trì Quạt 2 Phút</span>
+      </div>
+      <div class="synx-node-pin is-out">Q ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">DO1 = 1</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● COMMIT</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DO1 • Quạt Gió</span>
+        <span class="synx-node-alias">Quạt Giải Nhiệt</span>
+        <span class="synx-node-val">Tự Ngắt Sau 2 Phút</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>

@@ -46,26 +46,13 @@ Khối **`CYCLE_TIMER`** là **bộ phát xung vuông tuần hoàn bất đối 
 
 ---
 
-## 4. Máy Trạng thái / Giản đồ Thời gian
+## 4. Quy tắc Dao động Chu kỳ & Pha Hoạt động
 
-Sơ đồ trạng thái dưới đây trình bày chi tiết vòng đời dao động hai pha, bao gồm bước phân nhánh pha khởi đầu (`StartWithOn`) và cơ chế ngắt an toàn tức thì khi `In` hạ về `0`:
-
-```mermaid
-stateDiagram-v2
-    [*] --> Stopped : "In == 0"
-    Stopped : "ĐÃ DỪNG (Q = 0, ET Pha = 0 ms)"
-    PhaseOn : "PHA BẬT (Q = 1, 0 <= ET < OnTimeMs)"
-    PhaseOff : "PHA NGHỈ (Q = 0, 0 <= ET < OffTimeMs)"
-
-    Stopped --> PhaseOn : "In: 0 -> 1 (khi StartWithOn == true)"
-    Stopped --> PhaseOff : "In: 0 -> 1 (khi StartWithOn == false)"
-
-    PhaseOn --> PhaseOff : "ET >= OnTimeMs khi In == 1 (Chuyển Q = 0, Đặt lại ET Pha)"
-    PhaseOff --> PhaseOn : "ET >= OffTimeMs khi In == 1 (Chuyển Q = 1, Đặt lại ET Pha)"
-
-    PhaseOn --> Stopped : "In: 1 -> 0 (Ngắt tức thì Q = 0)"
-    PhaseOff --> Stopped : "In: 1 -> 0 (Ngắt tức thì Q = 0)"
-```
+Khi tín hiệu kích hoạt `In` ở mức `1`, khối `CYCLE_TIMER` dao động luân phiên giữa 2 pha:
+- **Pha Bật (`OnTime`):** Ngõ ra `Q = 1` trong khoảng thời gian `OnTimeMs`.
+- **Pha Nghỉ (`OffTime`):** Ngõ ra `Q = 0` trong khoảng thời gian `OffTimeMs`.
+- **Lựa chọn Pha Khởi đầu (`StartWithOn`):** Nếu `StartWithOn = true`, chu kỳ bắt đầu ngay bằng Pha Bật (`Q = 1`). Nếu `false`, khối sẽ nghỉ `OffTimeMs` trước khi phát xung bật đầu tiên.
+- **Dừng Khẩn cấp Tức thì:** Ngay khi `In` tụt về `0`, ngõ ra `Q` lập tức ngắt về `0` và thời gian đếm pha được xóa an toàn.
 
 ---
 
@@ -107,16 +94,140 @@ Mỗi khi cờ chốt sự cố máy (`VFLAG0 = 1`) kích hoạt, đèn tháp c�
 3. **Nhánh 2 (Nút nhấn Xóa Lỗi):** Đặt khối **`INPUT`** (`Tag = DI4`) → **[`TRIGGER`](/vi/blocks/trigger)** (`ON_RISE`, `ForMs = 50` ms) → **[`ACTION`](/vi/blocks/action)** (`SET_TAG`, `TargetTag = VFLAG0`, `ActionParam = 0`).
 4. Nhấn `F5` chạy mô phỏng: gạt `VFLAG0` lên `1`, quan sát `DO3` lập tức chớp sáng `● ON` (`250 ms`) và nghỉ `● OFF` (`1,750 ms`) tuần hoàn; bấm nút `DI4` xóa `VFLAG0 = 0`, xác nhận đèn `DO3` tắt dứt khoát về `0`.
 
-```mermaid
-flowchart LR
-    IN_FLT["INPUT: VFLAG0<br/>(Cờ Chốt Sự cố Máy)"]
-    CYC_BCN["CYCLE_TIMER<br/>(ON: 250 ms / OFF: 1750 ms · Bắt đầu ON · DO3)"]
+<div class="synx-node-chain" style="margin-bottom: 12px;">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● LIVE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">VFLAG0 • BOOL</span>
+        <span class="synx-node-alias">Cờ Chốt Sự Cố</span>
+        <span class="synx-node-val">Phát Hiện Lỗi Máy</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
 
-    IN_RST["INPUT: DI4<br/>(Nút nhấn Xóa Lỗi)"]
-    TRG_RST["TRIGGER: ON_RISE<br/>(ForMs = 50 ms)"]
-    ACT_CLR["ACTION: SET_TAG<br/>(VFLAG0 = 0)"]
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">ENABLE</span>
+  </div>
 
-    IN_FLT -- "Out -> In" --> CYC_BCN
-    IN_RST -- "Out -> In" --> TRG_RST
-    TRG_RST -- "Out -> In" --> ACT_CLR
-```
+  <div class="synx-canvas-node is-timer">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 A6.5,6.5 0 1 1 1.5,8 M8,1.5 L8,8 L11,10" /></svg>
+        <span>CYCLE_TIMER</span>
+      </div>
+      <span class="synx-node-status is-active">● 250 / 1750 ms</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">ON 250ms / OFF 1750ms</span>
+        <span class="synx-node-alias">Chớp Đèn Còi DO3</span>
+        <span class="synx-node-val">Tuần Hoàn Cảnh Báo</span>
+      </div>
+      <div class="synx-node-pin is-out">Q ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">STROBE</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● FLASH</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DO3 = 1</span>
+        <span class="synx-node-alias">Đèn Tháp Cảnh Báo</span>
+        <span class="synx-node-val">Chớp Vàng Báo Động</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
+
+<div class="synx-node-chain" style="margin-top: 12px;">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● LIVE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DI4 • BOOL</span>
+        <span class="synx-node-alias">Nút Nhấn Xóa Lỗi</span>
+        <span class="synx-node-val">Xác Nhận Người Vận Hành</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">EDGE</span>
+  </div>
+
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M10,1 L5,8.5 L8.5,8.5 L6,15 L11,7.5 L7.5,7.5 Z" /></svg>
+        <span>TRIGGER</span>
+      </div>
+      <span class="synx-node-status is-rise">● ON_RISE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">50 ms Dwell</span>
+        <span class="synx-node-alias">Lọc Sườn Lên</span>
+        <span class="synx-node-val">Bắt Xung Nhấn Reset</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">RESET</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-pass">● CLEAR</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">VFLAG0 = 0</span>
+        <span class="synx-node-alias">Xóa Cờ Sự Cố</span>
+        <span class="synx-node-val">Tắt Chớp Đèn Còi DO3</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>

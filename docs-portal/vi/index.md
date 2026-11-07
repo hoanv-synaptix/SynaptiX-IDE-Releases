@@ -1,13 +1,13 @@
-# Cổng Tài liệu Kỹ thuật SynaptiX IDE (Technical Wiki)
+# Hướng dẫn Lập trình SynaptiX (SynaptiX Programming Guide)
 
 <div class="doc-meta-bar">
-  <span><strong>Mã tài liệu:</strong> SYNX-DOC-IDE-000</span>
-  <span><strong>Nền tảng phần mềm:</strong> SynaptiX IDE (.NET 8 Desktop Engineering Environment)</span>
-  <span><strong>Đối tượng:</strong> Kỹ sư Tích hợp Hệ thống, Tự động hóa &amp; IIoT</span>
+  <span><strong>Mã tài liệu:</strong> SYNX-DOC-PROG-000</span>
+  <span><strong>Nền tảng kỹ thuật:</strong> SynaptiX IDE (.NET 8 Engineering Environment)</span>
+  <span><strong>Đối tượng:</strong> Kỹ sư Tích hợp Hệ thống, Tự động hóa &amp; Firmware</span>
   <span><strong>Tiêu chuẩn:</strong> IEC/IEEE 82079-1 &bull; ANSI/ISA-101</span>
 </div>
 
-Chào mừng bạn đến với cổng tài liệu kỹ thuật chính thức của **SynaptiX IDE** — môi trường kỹ thuật tích hợp trên máy tính dành riêng cho việc thiết kế logic điều khiển, cấu hình truyền thông công nghiệp, mô phỏng kiểm thử, nạp chương trình an toàn và giám sát thời gian thực cho **Hệ sinh thái Tự động hóa Biên & IIoT SynaptiX**.
+Chào mừng bạn đến với **Hướng dẫn Lập trình SynaptiX (SynaptiX Programming Guide)** — cẩm nang kỹ thuật chính thức và toàn diện dành cho việc thiết kế logic điều khiển, cấu hình truyền thông công nghiệp, mô phỏng kiểm thử, nạp chương trình an toàn và giám sát thời gian thực cho **Hệ sinh thái Tự động hóa Biên & IIoT SynaptiX**.
 
 Khác với các phần mềm cấu hình rời rạc tách biệt giữa điều khiển tại chỗ, đọc cảm biến RS-485 và đẩy dữ liệu đám mây, **SynaptiX IDE** hợp nhất toàn bộ quy trình từ thiết kế sơ đồ khối trực quan, kiểm soát chặt chẽ kiểu dữ liệu vật lý, mô phỏng chu kỳ chính xác không cần phần cứng, nạp Flash hai pha nguyên tử đến chẩn đoán trực tuyến 20 FPS trong một không gian làm việc duy nhất.
 
@@ -56,14 +56,38 @@ Toàn bộ tài liệu được tổ chức xuyên suốt theo **6 chương tu�
 
 ## Quy trình Kỹ thuật Đầu-Cuối trên SynaptiX IDE
 
-```mermaid
-flowchart LR
-    A["1. Chọn Cấu hình Thiết bị<br/>(New Project / Tự động nhận diện)"] --> B["2. Khai báo Tag Vật lý &amp; Ảo<br/>(Tag Catalog · Ctrl+3)"]
-    B --> C["3. Thiết kế Sơ đồ Khối &amp; IIoT<br/>(Logic Graph · Ctrl+2)"]
-    C --> D["4. Mô phỏng Offline &amp; Biên dịch<br/>(Simulator F5 · Compile F7)"]
-    D --> E["5. Nạp Giao dịch Nguyên tử 2 Pha<br/>(Deploy · Ctrl+F5)"]
-    E --> F["6. Giám sát &amp; Nghiệm thu<br/>(Live Watch Ctrl+7 · Live Debug F8)"]
-```
+<div class="synx-workflow-grid">
+  <div class="synx-workflow-card">
+    <div class="synx-workflow-num">1</div>
+    <h4 class="synx-workflow-title">Chọn Cấu hình Thiết bị</h4>
+    <p class="synx-workflow-desc">Khởi tạo New Project hoặc tự động nhận diện phần cứng mục tiêu qua cổng USB CDC / Modbus TCP.</p>
+  </div>
+  <div class="synx-workflow-card">
+    <div class="synx-workflow-num">2</div>
+    <h4 class="synx-workflow-title">Khai báo Tag Vật lý &amp; Ảo</h4>
+    <p class="synx-workflow-desc">Quản lý không gian 128 Tag (DI, DO, AI, VREG) tại Tag Catalog (<kbd>Ctrl+3</kbd>) với kiểu dữ liệu vật lý nghiêm ngặt.</p>
+  </div>
+  <div class="synx-workflow-card">
+    <div class="synx-workflow-num">3</div>
+    <h4 class="synx-workflow-title">Thiết kế Sơ đồ Khối &amp; IIoT</h4>
+    <p class="synx-workflow-desc">Kéo thả 18 khối hàm logic, Modbus RTU, MQTT TLS và định tuyến trên Logic Graph (<kbd>Ctrl+2</kbd>).</p>
+  </div>
+  <div class="synx-workflow-card">
+    <div class="synx-workflow-num">4</div>
+    <h4 class="synx-workflow-title">Mô phỏng Offline &amp; Biên dịch</h4>
+    <p class="synx-workflow-desc">Kiểm thử chu kỳ thực tại Simulator (<kbd>F5</kbd>) và kiểm tra cú pháp, giới hạn bộ nhớ khi biên dịch (<kbd>F7</kbd>).</p>
+  </div>
+  <div class="synx-workflow-card">
+    <div class="synx-workflow-num">5</div>
+    <h4 class="synx-workflow-title">Nạp Giao dịch Nguyên tử 2 Pha</h4>
+    <p class="synx-workflow-desc">Nạp an toàn xuống MCU qua Deploy (<kbd>Ctrl+F5</kbd>) với cơ chế xác minh CRC và commit không dừng chu kỳ quét.</p>
+  </div>
+  <div class="synx-workflow-card">
+    <div class="synx-workflow-num">6</div>
+    <h4 class="synx-workflow-title">Giám sát &amp; Nghiệm thu 20 FPS</h4>
+    <p class="synx-workflow-desc">Quan sát sóng tín hiệu thời gian thực tại Live Watch (<kbd>Ctrl+7</kbd>) và ép giá trị Force Tag trực tiếp (<kbd>F8</kbd>).</p>
+  </div>
+</div>
 
 ## Các Trụ cột Kỹ thuật Cốt lõi
 

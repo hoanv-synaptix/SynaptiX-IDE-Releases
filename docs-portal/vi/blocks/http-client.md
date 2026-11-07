@@ -50,28 +50,13 @@ Nhấp nút **`[ Cấu hình HTTP Client... ]`** (hoặc nhấp đúp vào khố
 
 ---
 
-## 4. Biểu đồ Vòng đời Giao dịch HTTP Bất đồng bộ
+## 4. Quy tắc Giao tiếp HTTP Bất đồng bộ
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant Logic as "Vòng Quét Sơ đồ Khối"
-    participant Http as "Tiến trình HTTP Ngầm"
-    participant Api as "Máy chủ REST Webhook"
-
-    Logic->>Http: Sườn lên Trig (0 → 1) hoặc Nhịp định kỳ Cyclic
-    Http->>Logic: Bật Busy = 1
-    Http->>Api: Kết nối TCP + Gửi HTTP POST/PUT (Url <= 64c, Headers <= 56c, Body)
-    alt Nhận phản hồi HTTP 200..299 trong hạn TimeoutSec
-        Api-->>Http: HTTP/1.1 200 OK
-        Http->>Logic: Busy = 0, Status = 200, Done = 1 (Xung 1 chu kỳ), Err = 0
-    else Máy chủ trả mã lỗi HTTP 4xx / 5xx
-        Api-->>Http: HTTP/1.1 401 Unauthorized / 500 Error
-        Http->>Logic: Busy = 0, Status = 401/500, Err = 1, Done = 0
-    else Quá hạn chờ mạng (Hết TimeoutSec)
-        Http->>Logic: Busy = 0, Status = 0, Err = 1
-    end
-```
+Khối `HTTP_CLIENT` gửi yêu cầu REST Webhook ra máy chủ bên ngoài qua luồng ngầm phi phong bế:
+- **Kích hoạt:** Phát yêu cầu theo sườn lên chân `Trig` hoặc định kỳ theo `CyclicIntervalSec`.
+- **Trạng thái Bận (`Busy = 1`):** Bật cờ `Busy = 1` trong suốt thời gian thiết lập kết nối TCP và gửi dữ liệu.
+- **Phản hồi thành công (`Done = 1`):** Khi máy chủ trả mã `HTTP 200..299`, chân `Done` phát 1 xung báo hoàn tất và cập nhật mã `Status` (ví dụ `200`).
+- **Xử lý sự cố mạng (`Err = 1`):** Nếu máy chủ trả mã lỗi `4xx / 5xx` hoặc quá thời gian `TimeoutSec`, cờ `Err` bật lên và `Status` phản ánh mã lỗi tương ứng.
 
 ---
 
@@ -91,12 +76,98 @@ sequenceDiagram
 
 **Bài toán:** Mỗi khi bộ đếm [`CTU`](/vi/blocks/ctu) đếm đủ `50` sản phẩm trên một pallet (chân `Q` chuyển sườn lên), tự động gửi bản tin HTTP `POST` chứa số lượng thực tế (`CNT_PalletParts`) và nhiệt độ dây chuyền (`VREG0_LineTemp`) về máy chủ MES nhà máy tại `http://192.168.10.25:8000/mes/batch`.
 
-```mermaid
-flowchart LR
-    CTU1["CTU: Pallet_Counter<br/>PV = 50 | CV = CNT_PalletParts"] -- "Q (0 → 1) → Trig" --> HTTP1["HTTP_CLIENT: MES_Webhook<br/>POST http://192.168.10.25:8000/mes/batch"]
-    HTTP1 -- "Status (INT32)" --> CMP["COMPARATOR: EQ (== 200)"]
-    HTTP1 -- "Err" --> ALM["DIRECT_WRITE: DO2_MesSyncWarn"]
-```
+<div class="synx-node-chain">
+  <div class="synx-canvas-node is-counter">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M5.5,3 L5.5,13 M10.5,3 L10.5,13 M2,6.5 L14,6.5 M2,10 L14,10" /></svg>
+        <span>CTU COUNTER</span>
+      </div>
+      <span class="synx-node-status is-active">● 50 / 50</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">PV = 50 • CV CNT_Parts</span>
+        <span class="synx-node-alias">Đủ 50 Sản Phẩm</span>
+        <span class="synx-node-val">Xung Sườn Lên Q</span>
+      </div>
+      <div class="synx-node-pin is-out">Q ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">TRIG</span>
+  </div>
+
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,5 L14,5 M14,5 L10,2 M14,5 L10,8 M14,11 L2,11 M2,11 L6,8 M2,11 L6,14" /></svg>
+        <span>HTTP_CLIENT</span>
+      </div>
+      <span class="synx-node-status is-active">● POST JSON</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● Trig</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">POST /mes/batch</span>
+        <span class="synx-node-alias">Báo Cáo Pallet</span>
+        <span class="synx-node-val">Gửi Qty &amp; Temp C</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">STATUS</span>
+  </div>
+
+  <div class="synx-canvas-node is-comparator">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M3.5,6 L8,9 L3.5,12 M9.5,7 L13,7 M9.5,10.5 L13,10.5" /></svg>
+        <span>COMPARATOR</span>
+      </div>
+      <span class="synx-node-status is-true">● 200 OK</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">HTTP == 200</span>
+        <span class="synx-node-alias">Phản Hồi Máy Chủ</span>
+        <span class="synx-node-val">Giao Dịch Thành Công</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">ENABLE</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-pass">● CLEAR</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DO2 = 0</span>
+        <span class="synx-node-alias">Xóa Đèn Lỗi Mạng</span>
+        <span class="synx-node-val">Hệ Thống Thông Suốt</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 **Các bước cấu hình:**
 1. Kéo khối **`HTTP_CLIENT`** ra vùng vẽ và mở hộp thoại cấu hình:

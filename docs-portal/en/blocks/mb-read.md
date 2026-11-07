@@ -74,27 +74,12 @@ If you assign a fractional `Multiplier` (such as `0.1` or `0.01`) while `TargetT
 
 ---
 
-## 4. Asynchronous Polling Sequence Diagram
+## 4. Non-Blocking Background Polling Rules
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant Scan as "Deterministic Scan Loop (10 ms)"
-    participant Worker as "Async Modbus Master Worker"
-    participant Bus as "RS-485 Transceiver (Port #1/#2)"
-    participant Slave as "External RS-485 Sensor (ID 1..247)"
-
-    Note over Worker: PollIntervalMs elapsed (or Trig 0 → 1 edge)
-    Worker->>Bus: Assert DE/RE & transmit 8-byte Request Frame + CRC-16
-    Bus->>Slave: Modbus RTU Request PDU (FC 01/02/03/04)
-    Worker->>Worker: Start TimeoutMs watchdog (300 ms)
-    Slave-->>Bus: Modbus RTU Response PDU + CRC-16
-    Bus-->>Worker: UART DMA frame complete
-    Worker->>Worker: Verify CRC-16, Endianness (ABCD/CDAB) & Multiplier
-    Worker->>Scan: Atomic commit to TargetTags + Valid = 1 (1-scan pulse)
-    Scan->>Scan: Execute downstream comparators & telemetry blocks
-    Scan->>Worker: Auto-clear Valid = 0 on next scan cycle
-```
+The `MB_READ` block operates in a background communication task, **never stalling local deterministic scan cycles**:
+- **Cyclic Mode (`Cyclic`):** Automatically polls the sensor at regular intervals defined by `PollIntervalMs` (default `500 ms`).
+- **Triggered Mode (`OnTriggerRisingEdge`):** Only initiates a read transaction on a rising edge at pin `Trig`.
+- **Atomic Commit:** When a complete, CRC-valid frame is received, data is decoded and committed to target output pins with a single-scan `Valid = 1` pulse.
 
 ---
 
@@ -120,14 +105,143 @@ sequenceDiagram
 
 **Objective:** Poll average line voltage and total active power every `1000 ms` on `RS-485 #1` from a multifunction meter (`SlaveId = 2`), trigger an under-voltage alarm if voltage drops below `195.0 V` while `Valid` is confirmed, and forward readings to cloud telemetry.
 
-```mermaid
-flowchart LR
-    MBR["MB_READ: Meter_PM2200<br/>Port #1 | ID: 2 | FC 03 | Cyclic 1000 ms"]
-    MBR -- "Voltage_V (REAL)" --> CMP["COMPARATOR: LT (&lt; 195.0 V)"]
-    MBR -- "Power_kW (REAL)" --> PUB["MQTT_PUB: synaptix/substation/power"]
-    MBR -- "Error" --> ALM["DIRECT_WRITE: DO2_CommFaultLamp"]
-    CMP -- "Out" --> UV["ACTION: Set VBIT_UnderVoltage"]
-```
+<div class="synx-node-chain" style="margin-bottom: 12px;">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,5 L14,5 M14,5 L10,2 M14,5 L10,8 M14,11 L2,11 M2,11 L6,8 M2,11 L6,14" /></svg>
+        <span>MB_READ</span>
+      </div>
+      <span class="synx-node-status is-live">● RS485 #1</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Slave 2 • FC 03</span>
+        <span class="synx-node-alias">PM2200 Meter</span>
+        <span class="synx-node-val">Cyclic Poll 1000ms</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">192.4 V</span>
+  </div>
+
+  <div class="synx-canvas-node is-comparator">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M3.5,6 L8,9 L3.5,12 M9.5,7 L13,7 M9.5,10.5 L13,10.5" /></svg>
+        <span>COMPARATOR</span>
+      </div>
+      <span class="synx-node-status is-true">● LT 195.0V</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">&lt; 195.0 V</span>
+        <span class="synx-node-alias">Under-Voltage Check</span>
+        <span class="synx-node-val">Phase Sags Below Limit</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">TRUE</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● SET 1</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">VFLAG0 = 1</span>
+        <span class="synx-node-alias">Under-Voltage Latch</span>
+        <span class="synx-node-val">Isolate Feeder Contactor</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
+
+<div class="synx-node-chain" style="margin-top: 12px;">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,5 L14,5 M14,5 L10,2 M14,5 L10,8 M14,11 L2,11 M2,11 L6,8 M2,11 L6,14" /></svg>
+        <span>MB_READ</span>
+      </div>
+      <span class="synx-node-status is-live">● OFFSET 2</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">VREG_ActiveKw</span>
+        <span class="synx-node-alias">Total Active Power</span>
+        <span class="synx-node-val">Float32 MidBig CDAB</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">42.8 kW</span>
+  </div>
+
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,14 L8,8 M5,10 A4,4 0 0 1 11,10 M3,7.5 A7,7 0 0 1 13,7.5 M1.5,5 A9.5,9.5 0 0 1 14.5,5" /></svg>
+        <span>MQTT_PUB</span>
+      </div>
+      <span class="synx-node-status is-active">● TELEMETRY</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">synaptix/power</span>
+        <span class="synx-node-alias">Cloud Telemetry</span>
+        <span class="synx-node-val">Substation Monitoring</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">BUS_OK</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-pass">● CLEAR</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DO2 = 0</span>
+        <span class="synx-node-alias">Bus Health Lamp</span>
+        <span class="synx-node-val">Clear Bus Alarm</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 **Configuration Steps:**
 1. Configure `RS-485 #1` to `9600 bps, 8E1, Master` in [RS-485 Config & SCADA Slave Map](/tools/rs485-and-scada-slave).

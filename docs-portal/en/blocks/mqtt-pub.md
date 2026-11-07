@@ -73,18 +73,12 @@ The **`MQTT_PUB`** (**IIoT MQTT Telemetry Publisher**) function block packages l
 
 ---
 
-## 4. Publish Trigger & Serialization Flow
+## 4. Publish Modes & Payload Framing Rules
 
-```mermaid
-flowchart LR
-    SRC["Process Tags / Upstream Wires"] --> GATE{"PublishMode Gate"}
-    GATE -- "Event: Trig 0 → 1" --> FMT["Payload Serializer<br/>(JSON Builder | Raw | Custom <= 128B)"]
-    GATE -- "COV: |ΔVal| ≥ Deadband" --> FMT
-    GATE -- "Cyclic: Every IntervalMs" --> FMT
-    FMT --> TX["Async MQTT Client Queue<br/>(QoS 0/1/2, Retain)"]
-    TX -- "Broker ACK / Sent" --> DONE["Done = 1 (Pulse) + PublishCount++"]
-    TX -- "Disconnected / Timeout" --> ERR["Err = 1 + LastErrorMessage"]
-```
+The `MQTT_PUB` block transforms industrial tags into cloud messages across 3 flexible mechanisms:
+- **Publish Trigger Modes (`PublishMode`):** Dispatches on rising edges of pin `Trig`, periodically via `IntervalMs`, or on change of value (`Δ ≥ Deadband`).
+- **Flexible Serialization:** Supports structured JSON (`Visual Field Builder`), raw single-value streams (`Raw`), or custom MES/ERP templates (`Custom <= 128 characters`).
+- **Non-Blocking In-Process Queue:** Outbound frames enter an asynchronous task queue, ensuring broker network handshakes never stall local deterministic logic.
 
 ---
 

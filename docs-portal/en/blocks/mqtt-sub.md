@@ -59,20 +59,12 @@ Safety-critical industrial design guarantees:
 
 ---
 
-## 4. Queueing & Atomic All-or-Nothing State Machine
+## 4. Atomic All-or-Nothing Ingestion Principle
 
-```mermaid
-flowchart TD
-    RX["Inbound MQTT Packet Arrives"] --> RET{"Retained on Boot &amp;<br/>IgnoreRetainedOnBoot?"}
-    RET -- "Yes" --> IGN["Discard Stale Retained Packet"]
-    RET -- "No" --> Q{"QueueMode?"}
-    Q -- "FIFO (Cap 16)" --> FIFO["Enqueue Ring Buffer<br/>(Dequeue 1 msg / scan)"]
-    Q -- "LatestWins" --> LW["Overwrite Slot with Newest Packet"]
-    FIFO --> PARSE["Atomic All-or-Nothing JSON Validator<br/>(Syntax + Required Keys + Type + Min/Max)"]
-    LW --> PARSE
-    PARSE -- "100% Pins Valid" --> OK["Commit All Pins &amp; TargetTags<br/>Valid = 1 (1-Scan Pulse) | Err = 0"]
-    PARSE -- "Any Pin Fails" --> REJ["Zero Memory Mutation!<br/>Err = 1 | DroppedCount++ | LastErrorCode"]
-```
+To protect industrial machinery from malformed or partial cloud commands, `MQTT_SUB` enforces strict atomic validation:
+- **Atomic All-or-Nothing:** All configured `JsonPath` keys within an incoming packet must parse successfully (syntax valid, required fields present, matching data types, and within `[MinValue .. MaxValue]` limits).
+- **100% Valid:** All output pins and bound tags commit simultaneously within the same scan cycle, asserting a single-scan `Valid = 1` pulse.
+- **Any Field Fails:** The entire packet is rejected atomically, asserting `Err = 1` and preserving prior memory states intact. Incomplete or half-mutated data is never committed.
 
 ---
 
@@ -101,14 +93,98 @@ flowchart TD
 
 **Objective:** Accept remote chilled-water temperature setpoints (`{"temp_sp": 7.5, "enable": true}`) on `synaptix/hvac/chiller1/setpoint`, enforce strict physical limits `[4.0 °C .. 18.0 °C]` so a cloud typo like `-10` can never freeze evaporator tubes, and fall back to `12.0 °C` if cloud heartbeat stops for `60,000 ms`.
 
-```mermaid
-flowchart LR
-    SUB["MQTT_SUB: synaptix/hvac/chiller1/setpoint<br/>LatestWins | IgnoreRetained = true | Timeout = 60000 ms"]
-    SUB -- "temp_sp (FLOAT 4.0..18.0)" --> CMP["COMPARATOR: Compare AI0_ChillerTemp &gt; temp_sp"]
-    SUB -- "enable (BOOL)" --> GRD["GUARD: Remote Enable Gate"]
-    CMP -- "Out" --> GRD
-    GRD -- "Out" --> COMP["DIRECT_WRITE: DO0_CompressorContactor"]
-```
+<div class="synx-node-chain">
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,14 L8,8 M5,10 A4,4 0 0 1 11,10 M3,7.5 A7,7 0 0 1 13,7.5 M1.5,5 A9.5,9.5 0 0 1 14.5,5" /></svg>
+        <span>MQTT_SUB</span>
+      </div>
+      <span class="synx-node-status is-active">● WATCHDOG</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">LatestWins • 60s</span>
+        <span class="synx-node-alias">BMS Setpoint</span>
+        <span class="synx-node-val">{temp_sp: 7.5, en: 1}</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">7.5 °C</span>
+  </div>
+
+  <div class="synx-canvas-node is-comparator">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M3.5,6 L8,9 L3.5,12 M9.5,7 L13,7 M9.5,10.5 L13,10.5" /></svg>
+        <span>COMPARATOR</span>
+      </div>
+      <span class="synx-node-status is-true">● GT SP</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">AI0 &gt; temp_sp</span>
+        <span class="synx-node-alias">Water Temp Compare</span>
+        <span class="synx-node-val">Chilled Water Over SP</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">TRUE</span>
+  </div>
+
+  <div class="synx-canvas-node is-guard">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 L13.5,4 L13.5,9.5 Q13.5,13.5 8,15 Q2.5,13.5 2.5,9.5 L2.5,4 Z" /></svg>
+        <span>GUARD</span>
+      </div>
+      <span class="synx-node-status is-pass">● PASS</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">RemoteEn == 1</span>
+        <span class="synx-node-alias">Remote Permissive</span>
+        <span class="synx-node-val">BMS Enable Gate</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">ENABLE</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● SET 1</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">DO0 = 1</span>
+        <span class="synx-node-alias">Chiller Compressor</span>
+        <span class="synx-node-val">Close Power Contactor</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 **Configuration Steps:**
 1. Drop **`MQTT_SUB`** on the canvas and set `Topic = "synaptix/hvac/chiller1/setpoint"`, `Qos = 1`, `QueueMode = LatestWins`, `IgnoreRetainedOnBoot = true`.

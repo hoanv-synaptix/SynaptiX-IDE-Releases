@@ -64,13 +64,122 @@ Trong thực tiễn tích hợp hệ thống tủ bảng điện và trạm thu 
 5. **SynaptiX IDE** lập tức dàn dựng toàn bộ khối hàm thẳng hàng theo lưới kỹ thuật (`X = 80, 340, 600, 860`), nối dây hoàn chỉnh và tự động chuyển màn hình sang [Sơ đồ Logic — Logic Graph](/vi/workspaces/logic-graph-tab) (`Ctrl+2`).
 6. Nhấn ngay phím `F5` để bật **Bộ Mô phỏng Offline**, kéo thanh trượt giả lập tín hiệu `AI0` hoặc gạt công tắc `DI0` để quan sát giá trị truyền dẫn trực quan qua từng khối hàm.
 
-```mermaid
-flowchart LR
-    B["Chọn Mẫu tại Blueprints (Ctrl+5)"] -->|"Nhấn Apply Blueprint"| T["Tự động Cấu hình Alias & Kiểu Dữ liệu Tag"]
-    T --> G["Đặt Khối & Đi dây trên Logic Graph (Ctrl+2)"]
-    G --> C["Tùy biến Ngưỡng / Kênh I/O tại Right Inspector"]
-    C --> V["Nhấn F7 Biên dịch & F5 Mô phỏng hoặc Ctrl+F5 Nạp"]
-```
+<div class="synx-node-chain" style="margin-bottom: 12px;">
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>BƯỚC 1</span>
+      </div>
+      <span class="synx-node-status">SELECT</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Chọn Mẫu Sẵn</span>
+        <span class="synx-node-alias">Thư Viện Chuẩn</span>
+        <span class="synx-node-val">Ctrl+5 Blueprints</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Apply</span>
+  </div>
+
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M3.5,6 L8,9 L3.5,12 M9.5,7 L13,7 M9.5,10.5 L13,10.5" /></svg>
+        <span>BƯỚC 2</span>
+      </div>
+      <span class="synx-node-status">TAGS</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Khởi Tạo Tag</span>
+        <span class="synx-node-alias">Tự Động Khai Báo</span>
+        <span class="synx-node-val">Alias & Kiểu Dữ Liệu</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Spawn</span>
+  </div>
+
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 L13.5,4 L13.5,9.5 Q13.5,13.5 8,15 Q2.5,13.5 2.5,9.5 L2.5,4 Z" /></svg>
+        <span>BƯỚC 3</span>
+      </div>
+      <span class="synx-node-status">CANVAS</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Bố Trí Khối Hàm</span>
+        <span class="synx-node-alias">Lưới Tọa Độ Chuẩn</span>
+        <span class="synx-node-val">Ctrl+2 Logic Graph</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Tune</span>
+  </div>
+
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,13 L5,13 L5,9.5 L8,9.5 L8,6 L11,6 L11,3 L14,3" /></svg>
+        <span>BƯỚC 4</span>
+      </div>
+      <span class="synx-node-status">PARAMS</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Tùy Biến Ngưỡng</span>
+        <span class="synx-node-alias">Khớp Tủ Điện</span>
+        <span class="synx-node-val">Right Inspector</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Run</span>
+  </div>
+
+  <div class="synx-canvas-node is-step is-done">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>BƯỚC 5</span>
+      </div>
+      <span class="synx-node-status is-active">● OPERATE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Vận Hành Máy</span>
+        <span class="synx-node-alias">Mô Phỏng & Nạp</span>
+        <span class="synx-node-val">F7 / F5 / Ctrl+F5</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 ### Quy trình 3.2: Tùy biến Mẫu Thiết kế Khớp với Cầu đấu Tủ điện Thực tế
 

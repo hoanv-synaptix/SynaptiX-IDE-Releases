@@ -17,33 +17,86 @@ Thay vì buộc kỹ sư tích hợp phải sử dụng nhiều phần mềm r�
 
 Trong nhà máy công nghiệp hoặc trạm quan trắc phân tán, **Thiết bị Biên SynaptiX (SynaptiX Edge Device)** đóng vai trò cầu nối trực tiếp giữa tầng chấp hành hiện trường (cảm biến, rơ-le, biến tần, đồng hồ điện năng) và tầng giám sát điều hành IT/OT (**SynaptiX IDE**, hệ thống SCADA nội bộ, MQTT Broker và dịch vụ REST Webhook).
 
-```mermaid
-flowchart LR
-    subgraph Field["Tầng Thiết bị Hiện trường"]
-        DIO["Ngõ vào/ra Số & Tương tự<br/>(DI0..7, DO0..7, AI0..3, PWM/PTO)"]
-        RS485["Thiết bị Nhánh RS-485<br/>(Biến tần, Đồng hồ Điện, Cảm biến)"]
-    end
+<div class="synx-arch-grid">
+  <!-- Card 1: Field -->
+  <div class="synx-arch-card">
+    <div class="synx-arch-header">
+      <div class="synx-arch-icon">1</div>
+      <div class="synx-arch-title-wrap">
+        <h4 class="synx-arch-title">Tầng Thiết bị Hiện trường</h4>
+        <span class="synx-arch-subtitle">Field Instrumentation</span>
+      </div>
+    </div>
+    <div class="synx-arch-items">
+      <div class="synx-arch-item">
+        <strong>Tín hiệu I/O Trực tiếp (Discrete & Analog)</strong>
+        <span>DI0..7 (Optocoupler), DO0..7 (Transistor), AI0..3 (4-20mA / 0-10V)</span>
+        <span class="synx-arch-badge">IEC 61131-2</span>
+      </div>
+      <div class="synx-arch-item">
+        <strong>RS-485 Fieldbus Slaves</strong>
+        <span>Biến tần VFD, Đồng hồ điện đa năng, Cảm biến nhiệt ẩm công nghiệp</span>
+        <span class="synx-arch-badge">Modbus RTU • 9600..115200 bps</span>
+      </div>
+    </div>
+  </div>
 
-    subgraph Edge["Nhân Thực thi Biên SynaptiX"]
-        TAG["Bộ nhớ Tag Hợp nhất<br/>(Tối đa 128 Tag Vật lý & Ảo)"]
-        PIPE["Động cơ Quét Tất định<br/>(Luật 4 Giai đoạn + Timer/Counter/Scale)"]
-        ASYNC["Tiến trình Fieldbus & IIoT Bất đồng bộ<br/>(Modbus Master, MQTT, HTTP, TCP)"]
-        DIO <--> TAG
-        TAG <--> PIPE
-        RS485 <--> ASYNC
-        ASYNC <--> TAG
-    end
+  <!-- Card 2: Edge -->
+  <div class="synx-arch-card">
+    <div class="synx-arch-header">
+      <div class="synx-arch-icon">2</div>
+      <div class="synx-arch-title-wrap">
+        <h4 class="synx-arch-title">Bộ điều khiển Biên SynaptiX</h4>
+        <span class="synx-arch-subtitle">Core Deterministic Runtime</span>
+      </div>
+    </div>
+    <div class="synx-arch-items">
+      <div class="synx-arch-item">
+        <strong>Bộ nhớ Tag Hợp nhất (Unified Tag Catalog)</strong>
+        <span>128 ô nhớ toàn cục: DI, DO, AI, VREG, VREG_RETAIN, COUNTER</span>
+        <span class="synx-arch-badge">Zero-Allocation</span>
+      </div>
+      <div class="synx-arch-item">
+        <strong>Động cơ Quét Tất định (Deterministic Scan)</strong>
+        <span>Chu kỳ 10ms ổn định: Đọc ngõ vào → Tính toán FBD → Ghi ngõ ra</span>
+        <span class="synx-arch-badge">Hard Real-time</span>
+      </div>
+      <div class="synx-arch-item">
+        <strong>Worker Truyền thông Bất đồng bộ</strong>
+        <span>Modbus Master Poller, MQTT Client, HTTP Webhook, TCP Client</span>
+        <span class="synx-arch-badge">Non-blocking DMA</span>
+      </div>
+    </div>
+  </div>
 
-    subgraph Supervisory["Tầng Kỹ thuật, SCADA & Đám mây"]
-        IDE["Môi trường Kỹ thuật SynaptiX IDE<br/>(USB CDC Serial / Modbus TCP)"]
-        SCADA["Trạm HMI / SCADA Master<br/>(Bản đồ Modbus Slave Cố định)"]
-        CLOUD["Nền tảng Đám mây & Doanh nghiệp<br/>(MQTT TLS Broker / REST / Raw Socket)"]
-    end
-
-    Edge <-->|"Biên dịch, Nạp Nguyên tử & Giám sát 20 FPS"| IDE
-    Edge <-->|"Truy vấn RTU / TCP Slave"| SCADA
-    ASYNC <-->|"Telemetry JSON & Lệnh Điều khiển Từ xa"| CLOUD
-```
+  <!-- Card 3: Supervisory -->
+  <div class="synx-arch-card">
+    <div class="synx-arch-header">
+      <div class="synx-arch-icon">3</div>
+      <div class="synx-arch-title-wrap">
+        <h4 class="synx-arch-title">Tầng Kỹ thuật & Đám mây</h4>
+        <span class="synx-arch-subtitle">IT / OT Supervisory Layer</span>
+      </div>
+    </div>
+    <div class="synx-arch-items">
+      <div class="synx-arch-item">
+        <strong>SynaptiX IDE Engineering Workbench</strong>
+        <span>Nạp giao dịch nguyên tử 2 pha, chẩn đoán Live Watch 20 FPS</span>
+        <span class="synx-arch-badge">USB CDC / Modbus TCP :502</span>
+      </div>
+      <div class="synx-arch-item">
+        <strong>Trạm SCADA / HMI Master</strong>
+        <span>Ignition, WinCC, Kepware truy xuất Bản đồ Modbus Slave cố định</span>
+        <span class="synx-arch-badge">FC01..04 / FC05..16</span>
+      </div>
+      <div class="synx-arch-item">
+        <strong>Nền tảng IIoT Đám mây</strong>
+        <span>Gửi Telemetry JSON định kỳ lên AWS IoT, EMQX, HiveMQ Cloud</span>
+        <span class="synx-arch-badge">MQTT TLS 1.2/1.3</span>
+      </div>
+    </div>
+  </div>
+</div>
 
 ### Quy trình Kỹ thuật Định hướng Hồ sơ Tài nguyên
 

@@ -22,41 +22,191 @@ Một tủ trạm biến áp không người trực lắp đặt đồng hồ ph
 
 ### 1.2 Kiến trúc Đấu nối & Lưu đồ Khối hàm FBD
 
-```mermaid
-flowchart LR
-    subgraph Field["Thiết bị Đo lường Hiện trường"]
-        PM["Đồng hồ Điện 3 Pha (ID: 1, RS-485 #1)"]
-        TH["Cảm biến Nhiệt/Ẩm (ID: 2, RS-485 #1)"]
-        PT["Đầu dò Nhiệt độ Dầu 4..20 mA (AI0)"]
-        ES["Liên động An toàn Tủ điện (DI0)"]
-    end
+<div class="synx-node-chain" style="margin-bottom: 12px;">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● AI0</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Cảm Biến 4-20mA</span>
+        <span class="synx-node-alias">Đầu Dò Nhiệt Dầu</span>
+        <span class="synx-node-val">AI0 • INT32</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
 
-    subgraph Graph["Sơ đồ Logic SynaptiX (Ctrl+2)"]
-        MBR1["MB_READ #1 (ID:1 FC03)"]
-        MBR2["MB_READ #2 (ID:2 FC04)"]
-        SCL["SCALE (4..20 mA -> 0..150 °C)"]
-        CMP_HI["COMPARATOR (>= 85.0 °C)"]
-        TON1["TON (PT = 5000 ms)"]
-        GRD["GUARD (DI0 == 1)"]
-        ACT_ON["ACTION (Set DO0 = 1)"]
-        CMP_LO["COMPARATOR (<= 78.0 °C)"]
-        ACT_OFF["ACTION (Reset DO0 = 0)"]
-        PUB["MQTT_PUB (Chu kỳ 10 s, QoS 1)"]
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Raw ADC</span>
+  </div>
 
-        PM --> MBR1
-        TH --> MBR2
-        PT --> SCL
-        SCL -->|"VREG2 (OilTemp_C)"| CMP_HI --> TON1 --> GRD --> ACT_ON
-        ES --> GRD
-        SCL --> CMP_LO --> ACT_OFF
-        MBR1 -->|"VREG0 (kW), VREG1 (kWh)"| PUB
-        MBR2 -->|"VREG3 (Amb_C), VREG4 (RH)"| PUB
-        SCL -->|"VREG2 (OilTemp_C)"| PUB
-    end
+  <div class="synx-canvas-node is-comparator">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M3.5,6 L8,9 L3.5,12 M9.5,7 L13,7 M9.5,10.5 L13,10.5" /></svg>
+        <span>COMPARATOR</span>
+      </div>
+      <span class="synx-node-status is-true">● SCALE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Quy Đổi &amp; So Sánh</span>
+        <span class="synx-node-alias">Thang 0..150 °C</span>
+        <span class="synx-node-val">&gt;= 85.0 °C</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
 
-    ACT_ON --> FAN["Quạt Cưỡng bức & Còi báo (DO0)"]
-    PUB -->|"TLS :8883 JSON"| CLOUD["Enterprise MQTTS Broker"]
-```
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">HOT</span>
+  </div>
+
+  <div class="synx-canvas-node is-timer">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1 A7,7 0 1 1 7.99,1 M8,4 L8,8 L11,10" /></svg>
+        <span>TON</span>
+      </div>
+      <span class="synx-node-status is-active">● 5000ms</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Trễ Lọc Nhiễu</span>
+        <span class="synx-node-alias">Chống Sốc Nhiệt</span>
+        <span class="synx-node-val">PT = 5000 ms</span>
+      </div>
+      <div class="synx-node-pin is-out">Q ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">Q=1</span>
+  </div>
+
+  <div class="synx-canvas-node is-guard">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 L13.5,4 L13.5,9.5 Q13.5,13.5 8,15 Q2.5,13.5 2.5,9.5 L2.5,4 Z" /></svg>
+        <span>GUARD</span>
+      </div>
+      <span class="synx-node-status is-pass">● DI0==1</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Cổng Khóa An Toàn</span>
+        <span class="synx-node-alias">Cửa Tủ Phải Đóng</span>
+        <span class="synx-node-val">DI0 == 1</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">PERMIT</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● FAN ON</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Quạt Cưỡng Bức</span>
+        <span class="synx-node-alias">Rơ-le DO0</span>
+        <span class="synx-node-val">DO0 = 1</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
+
+<div class="synx-node-chain" style="margin-top: 12px;">
+  <div class="synx-canvas-node is-fieldbus">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,4 L6,4 L6,8 L2,8 Z M10,4 L14,4 L14,8 L10,8 Z M6,6 L10,6" /></svg>
+        <span>MB_READ</span>
+      </div>
+      <span class="synx-node-status is-live">● RS-485 #1</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Modbus RTU Master</span>
+        <span class="synx-node-alias">Đồng Hồ Điện &amp; Khí</span>
+        <span class="synx-node-val">9600-8-N-1</span>
+      </div>
+      <div class="synx-node-pin is-out">Data ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">5 Tags</span>
+  </div>
+
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M10,1 L5,8.5 L8.5,8.5 L6,15 L11,7.5 L7.5,7.5 Z" /></svg>
+        <span>MQTT_PUB</span>
+      </div>
+      <span class="synx-node-status is-rise">● 10s • QoS 1</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Đóng Gói Payload</span>
+        <span class="synx-node-alias">JSON Telemetry</span>
+        <span class="synx-node-val">Gom 5 Biến Đo</span>
+      </div>
+      <div class="synx-node-pin is-out">Done ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">MQTTS</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● PORT 8883</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Xuất Bản Lên Cloud</span>
+        <span class="synx-node-alias">Bảo Mật TLS</span>
+        <span class="synx-node-val">Cloud MQTT Broker</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 ### 1.3 Bảng Quy hoạch Danh mục Biến (`Ctrl+3`)
 
@@ -110,24 +260,143 @@ Tại trạm chia chọn bưu kiện thương mại điện tử, đầu đọc 
 
 ### 2.2 Kiến trúc Đấu nối & Lưu đồ Khối hàm FBD
 
-```mermaid
-flowchart LR
-    WMS["Máy chủ Kho vận WMS Broker"] -->|"JSON QoS 1 (wms/station04/sort)"| SUB["MQTT_SUB (FIFO = 16, Atomic)"]
+<div class="synx-node-chain" style="margin-bottom: 12px;">
+  <div class="synx-canvas-node is-trigger">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M10,1 L5,8.5 L8.5,8.5 L6,15 L11,7.5 L7.5,7.5 Z" /></svg>
+        <span>MQTT_SUB</span>
+      </div>
+      <span class="synx-node-status is-rise">● FIFO=16</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Lệnh Chia Hàng</span>
+        <span class="synx-node-alias">WMS Sort Topic</span>
+        <span class="synx-node-val">FIFO = 16 Gói</span>
+      </div>
+      <div class="synx-node-pin is-out">Valid ●</div>
+    </div>
+  </div>
 
-    subgraph Graph["Sơ đồ Logic SynaptiX (Ctrl+2)"]
-        SUB -->|"Chân 1: chute -> VREG0"| MBW["MB_WRITE (Channel-Indexed, Excl = BẬT)"]
-        SUB -->|"Chân 2: cmd -> VREG1"| MBW
-        SUB -->|"Chân 3: color -> VREG2"| MBW
-        SUB -->|"Xung Valid (VFLAG0)"| MBW
-        SUB -->|"Xung Valid (VFLAG0)"| TP1["TP Phát xung Đơn ổn (PT = 4000 ms)"]
-        SUB -->|"Xung Err (VFLAG1)"| ACT_ERR["ACTION (Set DO2 Đèn báo Lỗi)"]
-        TP1 -->|"Q (VFLAG2)"| DW_BUZ["DIRECT_WRITE (DO0 Đèn Trạm Bận)"]
-        TP1 -->|"Sườn xuống (Q == 0)"| ACT_CLR["ACTION (Set VREG1 = 0 Tắt đèn Máng)"]
-    end
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Chute Idx</span>
+  </div>
 
-    MBW -->|"RS-485 #1 (115200 8N1)"| BAR["Thanh Đèn 18 Ô Sort-to-Light (ID: 1)"]
-    DW_BUZ --> LAMP["Đèn Tháp Báo Trạm Hoạt động (DO0)"]
-```
+  <div class="synx-canvas-node is-direct">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,4 L6,4 L6,8 L2,8 Z M10,4 L14,4 L14,8 L10,8 Z M6,6 L10,6" /></svg>
+        <span>MB_WRITE</span>
+      </div>
+      <span class="synx-node-status is-active">● EXCLUSIVE</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">RS-485 #1 Độc Quyền</span>
+        <span class="synx-node-alias">Ô Máng 1..18</span>
+        <span class="synx-node-val">Tự Tắt Ô Cũ</span>
+      </div>
+      <div class="synx-node-pin is-out">Done ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">LIGHT</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● INDICATOR</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Sort-to-Light</span>
+        <span class="synx-node-alias">Đèn Hướng Dẫn</span>
+        <span class="synx-node-val">Xanh/Vàng/Dương</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
+
+<div class="synx-node-chain" style="margin-top: 12px;">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● VALID</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Nhận Kiện Mới</span>
+        <span class="synx-node-alias">Xung Kích Hoạt</span>
+        <span class="synx-node-val">MQTT_SUB.Valid</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">PULSE</span>
+  </div>
+
+  <div class="synx-canvas-node is-timer">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1 A7,7 0 1 1 7.99,1 M8,4 L8,8 L11,10" /></svg>
+        <span>TP</span>
+      </div>
+      <span class="synx-node-status is-active">● 4000ms</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Đơn Ổn Giữ Sáng</span>
+        <span class="synx-node-alias">Đèn Báo Trạm DO0</span>
+        <span class="synx-node-val">PT = 4000 ms</span>
+      </div>
+      <div class="synx-node-pin is-out">Q ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Timeout</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● AUTO-OFF</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Tự Động Xóa Đèn</span>
+        <span class="synx-node-alias">Hết 4 Giây Tắt</span>
+        <span class="synx-node-val">Xóa Ô Máng Đích</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 ### 2.3 Bảng Quy hoạch Danh mục Biến (`Ctrl+3`)
 

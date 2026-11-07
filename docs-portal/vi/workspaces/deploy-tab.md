@@ -44,27 +44,122 @@ Giao diện **Atomic Deploy Workspace** chia thành hai phân khu rõ rệt: **C
 
 Biểu đồ trình tự dưới đây minh họa cơ chế phối hợp giữa **SynaptiX IDE** và **SynaptiX Runtime** nhằm đảm bảo tuyệt đối không bao giờ xảy ra lỗi ghi dở dang ngay cả khi sập nguồn tủ điện hoặc đứt cáp đột ngột:
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant IDE as "SynaptiX IDE (Bộ máy Triển khai)"
-    participant STG as "SynaptiX Device (Vùng đệm Cô lập)"
-    participant RUN as "SynaptiX Runtime (Nhân Quét Đang chạy)"
+<div class="synx-node-chain" style="margin-bottom: 12px;">
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>PHA 1</span>
+      </div>
+      <span class="synx-node-status">PRE-FLIGHT</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Tiền Kiểm Tra</span>
+        <span class="synx-node-alias">Hợp Lệ Biên Dịch</span>
+        <span class="synx-node-val">Check Limits &amp; Tags</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
 
-    Note over IDE,RUN: Tiền kiểm tra: Bản biên dịch Valid, Hạn mức Luật & Năng lực Phần cứng Hợp lệ
-    IDE->>STG: "Pha 1A: Truyền Tập luật, Khối hàm, Cấu hình Ngoại vi & Kiểu Tag"
-    Note right of RUN: "Chương trình hiện tại vẫn quét điều khiển bình thường không gián đoạn"
-    IDE->>STG: "Pha 1B: Gửi Mã kiểm tra & Yêu cầu Đối chiếu Toàn vẹn Gói tin"
-    alt "Rút cáp, Sụt áp nguồn hoặc Sai lệch Checksum ở Pha 1"
-        STG--xIDE: "Hủy Vùng đệm / Mất kết nối"
-        Note right of RUN: "Bộ nhớ Flash & Logic Đang chạy Được Bảo toàn Nguyên vẹn 100%"
-    else "Xác thực Checksum Khớp 100%"
-        STG-->>IDE: "Vùng đệm Hợp lệ (Sẵn sàng Chuyển mạch)"
-        IDE->>RUN: "Pha 2: Phát Lệnh Chuyển mạch Flash Nguyên tử Duy nhất"
-        RUN->>RUN: "Hoán đổi Êm tại Ranh giới Chu kỳ Quét & Lưu Bất biến"
-        RUN-->>IDE: "Xác nhận Bắt tay Thành công (Phiên bản Mới & Thời gian ms)"
-    end
-```
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Stream</span>
+  </div>
+
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,13 L5,13 L5,9.5 L8,9.5 L8,6 L11,6 L11,3 L14,3" /></svg>
+        <span>PHA 2</span>
+      </div>
+      <span class="synx-node-status">STAGING</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Vùng Đệm Cô Lập</span>
+        <span class="synx-node-alias">Truyền Gói Nhị Phân</span>
+        <span class="synx-node-val">Logic Cũ Vẫn Chạy</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Verify</span>
+  </div>
+
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M10,1 L5,8.5 L8.5,8.5 L6,15 L11,7.5 L7.5,7.5 Z" /></svg>
+        <span>PHA 3</span>
+      </div>
+      <span class="synx-node-status">CRC-16</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Đối Chiếu Toàn Vẹn</span>
+        <span class="synx-node-alias">Kiểm Tra Checksum</span>
+        <span class="synx-node-val">Xác Thực Mã CRC</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Swap</span>
+  </div>
+
+  <div class="synx-canvas-node is-step">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 L13.5,4 L13.5,9.5 Q13.5,13.5 8,15 Q2.5,13.5 2.5,9.5 L2.5,4 Z" /></svg>
+        <span>PHA 4</span>
+      </div>
+      <span class="synx-node-status">ATOMIC</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Chuyển Mạch Êm</span>
+        <span class="synx-node-alias">Ranh Giới Scan 10ms</span>
+        <span class="synx-node-val">Zero Machine Jitter</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Active</span>
+  </div>
+
+  <div class="synx-canvas-node is-step is-done">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>PHA 5</span>
+      </div>
+      <span class="synx-node-status is-active">● COMMIT</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Bắt Tay Xác Nhận</span>
+        <span class="synx-node-alias">Ghi Nhận Phiên Bản</span>
+        <span class="synx-node-val">Vận Hành Chính Thức</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 ::: tip TRÍ TUỆ MÃ BĂM NGỮ NGHĨA (SEMANTIC PROGRAM HASH)
 **SynaptiX IDE** tính toán **Mã băm Ngữ nghĩa** thuần túy dựa trên tập luật sau biên dịch, kiểu dữ liệu biến và cấu hình truyền thông. Mọi thao tác chỉnh sửa thẩm mỹ trên [Sơ đồ Logic — Logic Graph](/vi/workspaces/logic-graph-tab)—như kéo trượt bản vẽ, căn hàng (`Alt+M`) hay dàn đều khoảng cách (`Alt+Shift+H`)—đều **không** làm sai lệch trạng thái đã đồng bộ với thiết bị.

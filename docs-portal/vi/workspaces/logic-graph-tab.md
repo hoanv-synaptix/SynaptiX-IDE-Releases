@@ -41,12 +41,98 @@ Trong quy trình tích hợp hệ thống, **Logic Graph Canvas** đảm nhiệm
 
 Mỗi khối hàm trên **Logic Graph Canvas** tách biệt nghiêm ngặt giữa **luồng dữ liệu giá trị** và **luồng xung sự kiện**, ngăn chặn từ gốc việc nối sai cấu trúc mạch ngay trong lúc kéo chuột:
 
-```mermaid
-flowchart LR
-    IN["Khối INPUT (Ngõ ra Giá trị Tag)"] -->|"Dây Giá trị (BOOL / INT32 / REAL)"| CMP["COMPARATOR / TRIGGER"]
-    CMP -->|"Dây Sự kiện (Xung kích hoạt)"| GRD["GUARD (Khóa liên động an toàn)"]
-    GRD -->|"Dây Sự kiện đã kiểm duyệt"| ACT["ACTION / Khối Chức năng"]
-```
+<div class="synx-node-chain">
+  <div class="synx-canvas-node is-input">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L12,8 M8,4 L12,8 L8,12" /></svg>
+        <span>INPUT</span>
+      </div>
+      <span class="synx-node-status is-live">● VALUE PIN</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in" style="visibility: hidden;">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Chân Giá Trị</span>
+        <span class="synx-node-alias">NGUỒN DỮ LIỆU</span>
+        <span class="synx-node-val">Truyền Tag Vật Lý / Ảo</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge">Dữ Liệu Tag</span>
+  </div>
+
+  <div class="synx-canvas-node is-comparator">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M3.5,6 L8,9 L3.5,12 M9.5,7 L13,7 M9.5,10.5 L13,10.5" /></svg>
+        <span>CMP / TRIGGER</span>
+      </div>
+      <span class="synx-node-status is-true">● EVAL PIN</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Chân Đánh Giá</span>
+        <span class="synx-node-alias">KIỂM TRA ĐIỀU KIỆN</span>
+        <span class="synx-node-val">So Sánh Ngưỡng / Sườn Xung</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">TRUE</span>
+  </div>
+
+  <div class="synx-canvas-node is-guard">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M8,1.5 L13.5,4 L13.5,9.5 Q13.5,13.5 8,15 Q2.5,13.5 2.5,9.5 L2.5,4 Z" /></svg>
+        <span>GUARD</span>
+      </div>
+      <span class="synx-node-status is-pass">● GATE PIN</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Chân Sự Kiện</span>
+        <span class="synx-node-alias">KHÓA LIÊN ĐỘNG</span>
+        <span class="synx-node-val">Điều Kiện Cho Phép AND</span>
+      </div>
+      <div class="synx-node-pin is-out">Out ●</div>
+    </div>
+  </div>
+
+  <div class="synx-node-wire">
+    <div class="synx-wire-line"></div>
+    <span class="synx-wire-badge is-bool">ENABLE</span>
+  </div>
+
+  <div class="synx-canvas-node is-action">
+    <div class="synx-node-header">
+      <div class="synx-node-header-left">
+        <svg class="synx-node-icon" viewBox="0 0 16 16"><path d="M2,8 L4,8 M12,8 L14,8 M4,4.5 A3.5,3.5 0 1 1 4,11.5" /></svg>
+        <span>ACTION</span>
+      </div>
+      <span class="synx-node-status is-active">● ACTUATOR</span>
+    </div>
+    <div class="synx-node-body">
+      <div class="synx-node-pin is-in">● In</div>
+      <div class="synx-node-content">
+        <span class="synx-node-tag">Chân Chấp Hành</span>
+        <span class="synx-node-alias">THỰC THI TÁC VỤ</span>
+        <span class="synx-node-val">SET, RESET, DIRECT OUT</span>
+      </div>
+      <div class="synx-node-pin is-out" style="visibility: hidden;">Out ●</div>
+    </div>
+  </div>
+</div>
 
 | Phần tử Chân / Dây nối | Hợp đồng Kiểu & Trực quan | Quy tắc Đấu nối trên Bản vẽ |
 | :--- | :--- | :--- |
