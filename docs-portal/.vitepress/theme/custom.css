@@ -401,6 +401,15 @@
 }
 
 /* Clean Typographic Heading Hierarchy (Zero dividing lines, pure modern whitespace rhythm) */
+/* Suppress header anchor symbol (#) completely for clean, distraction-free reading */
+.vp-doc .header-anchor,
+.header-anchor {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 .vp-doc h1 {
   font-size: 1.95rem !important;
   font-weight: 700 !important;
